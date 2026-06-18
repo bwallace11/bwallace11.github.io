@@ -25,7 +25,7 @@ const projectCategories = [
           'A cinematic, readable scrollytelling experience with strong mood and clear narrative direction.',
         tools: ['HTML', 'CSS', 'JavaScript', 'GSAP', 'ScrollTrigger'],
         year: '2026',
-        url: 'https://scrollytelling-javanoir-bwallace.netlify.app/'
+        url: 'https://javanoir-scrollytelling.netlify.app/'
       },
       {
         id: 'history-web-design',
@@ -101,7 +101,7 @@ const projectCategories = [
           'A playful project that combines humor with solid front-end fundamentals.',
         tools: ['HTML', 'CSS', 'JavaScript'],
         year: '2026',
-        url: 'https://wallacerandomquotegen.netlify.app/'
+        url: 'https://colinm-quote-gen.netlify.app/'
       },
       {
         id: 'keepsake-ledger',
@@ -118,7 +118,7 @@ const projectCategories = [
           'A clearer, more navigable listing interface.',
         tools: ['HTML', 'CSS', 'JavaScript'],
         year: '2026',
-        url: 'https://wallace-apilisting-thekeepsakeledger.netlify.app/'
+        url: 'https://wallaceapidatalisting.netlify.app/'
       },
       {
         id: 'peace-of-mind-dashboard',
@@ -135,7 +135,7 @@ const projectCategories = [
           'A calm, scannable dashboard with meaningful visual priority.',
         tools: ['Figma', 'HTML', 'CSS'],
         year: '2026',
-        url: 'https://wallace-peaceofmind-dashboard.netlify.app/'
+        url: 'https://mindful-dashboard-task-keeper.netlify.app/'
       }
     ]
   },
