@@ -1,6 +1,6 @@
 # Brittany's Late Night Studio
 
-Interactive portfolio site for Brittany Wallace, built with vanilla HTML, CSS, and JavaScript.
+Desktop-style portfolio for Brittany Wallace, featuring web design, UX, branding, logo work, games, invitations, and creative projects made after dark. Built with vanilla HTML, CSS, and JavaScript.
 
 Live site: https://bwallace11.github.io/
 

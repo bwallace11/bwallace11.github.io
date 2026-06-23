@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Resume icon">
+  <defs>
+    <linearGradient id="bg" x1="30" y1="23" x2="222" y2="232" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5e86a8"/>
+      <stop offset="1" stop-color="#284a67"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="81" y1="54" x2="181" y2="194" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#e9f6ff"/>
+      <stop offset="1" stop-color="#b9d7ee"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#0d263a" flood-opacity=".45"/>
+    </filter>
+  </defs>
+  <rect x="16" y="16" width="224" height="224" rx="44" fill="url(#bg)"/>
+  <rect x="17" y="17" width="222" height="222" rx="43" fill="none" stroke="#a6c8df" stroke-opacity=".45" stroke-width="2"/>
+  <g filter="url(#soft)">
+    <path d="M74 51h77l38 39v110c0 7-6 13-13 13H74c-7 0-13-6-13-13V64c0-7 6-13 13-13z" fill="url(#paper)" stroke="#eaf8ff" stroke-width="4"/>
+    <path d="M150 52v39h38" fill="#d2e9f8" stroke="#6b94b2" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M88 119h79M88 141h79M88 163h58" stroke="#5b8cad" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="90" cy="185" r="4" fill="#5b8cad"/>
+    <path d="M106 185h36" stroke="#5b8cad" stroke-width="6" stroke-linecap="round"/>
+  </g>
+</svg>

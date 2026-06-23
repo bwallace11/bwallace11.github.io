@@ -4,176 +4,569 @@ const taskbarWindows = document.getElementById("taskbar-windows");
 const mobileCards = document.getElementById("mobile-cards");
 const clockElement = document.getElementById("clock");
 
+const portfolioAppOrder = [
+  "about",
+  "resume",
+  "contact",
+  "web-design",
+  "ux-design",
+  "logo-design",
+  "other-projects",
+];
+
+const folderImageNames = ["cover", "01", "02", "03", "04"];
+const folderImageExtensions = ["jpg", "png", "webp"];
+
+function folderImages(folder, existingImages = []) {
+  const conventionalImages = folderImageNames.flatMap((name) =>
+    folderImageExtensions.map((extension) => `${folder}/${name}.${extension}`)
+  );
+
+  return [...existingImages, ...conventionalImages];
+}
+
+function createProjectContent({
+  title,
+  summary,
+  image,
+  images = [],
+  details = [],
+  link = "",
+  linkLabel = "Open Project",
+}) {
+  const mediaItems = [...new Set([image, ...images].filter(Boolean))];
+  const snapshotMarkup =
+    mediaItems.length > 1
+      ? `
+        <figure class="project-snapshot project-carousel" data-carousel aria-label="${title} image carousel">
+          <div class="carousel-stage">
+            ${mediaItems
+              .map(
+                (src, index) =>
+                  `<img class="carousel-slide ${index === 0 ? "active" : ""}" src="${src}" alt="${title} preview ${index + 1}" data-carousel-slide data-carousel-slide-index="${index}" />`
+              )
+              .join("")}
+            <span class="project-snapshot-fallback" hidden>${title}</span>
+          </div>
+          <button class="carousel-btn carousel-prev" type="button" data-carousel-prev aria-label="Previous image">&lt;</button>
+          <button class="carousel-btn carousel-next" type="button" data-carousel-next aria-label="Next image">&gt;</button>
+          <div class="carousel-dots" aria-hidden="true">
+            ${mediaItems.map((_, index) => `<button class="${index === 0 ? "active" : ""}" type="button" data-carousel-dot="${index}"></button>`).join("")}
+          </div>
+        </figure>
+      `
+      : mediaItems.length === 1
+        ? `<figure class="project-snapshot"><img src="${mediaItems[0]}" alt="${title} preview" data-project-image /><span class="project-snapshot-fallback" hidden>${title}</span></figure>`
+        : `<div class="project-snapshot project-snapshot-empty"><span>${title}</span></div>`;
+  const detailMarkup = details.length
+    ? `<ul class="entry-list">${details.map((detail) => `<li>${detail}</li>`).join("")}</ul>`
+    : "";
+  const externalAttributes = /^https?:\/\//i.test(link) ? ' target="_blank" rel="noreferrer"' : "";
+  const linkMarkup = link
+    ? `<p><a class="content-link" href="${link}"${externalAttributes}>${linkLabel}</a></p>`
+    : "";
+
+  return `
+    <article class="content-block portfolio-entry">
+      ${snapshotMarkup}
+      <div class="portfolio-info">
+        <h2>${title}</h2>
+        <p>${summary}</p>
+        ${detailMarkup}
+        ${linkMarkup}
+      </div>
+    </article>
+  `;
+}
+
+function setCarouselSlide(carousel, index) {
+  const slides = [...carousel.querySelectorAll("[data-carousel-slide]")].filter((slide) => !slide.hidden);
+  const fallback = carousel.querySelector(".project-snapshot-fallback");
+  const controls = carousel.querySelectorAll(".carousel-btn, .carousel-dots");
+  const dots = [...carousel.querySelectorAll("[data-carousel-dot]")];
+
+  if (!slides.length) {
+    if (fallback) fallback.hidden = false;
+    controls.forEach((control) => {
+      control.hidden = true;
+    });
+    return;
+  }
+
+  if (fallback) fallback.hidden = true;
+  controls.forEach((control) => {
+    control.hidden = slides.length <= 1;
+  });
+
+  const nextIndex = ((index % slides.length) + slides.length) % slides.length;
+  carousel.dataset.carouselIndex = String(nextIndex);
+  const activeSlideIndex = Number(slides[nextIndex].dataset.carouselSlideIndex);
+
+  slides.forEach((slide, slideIndex) => {
+    slide.classList.toggle("active", slideIndex === nextIndex);
+  });
+
+  dots.forEach((dot) => {
+    const dotIndex = Number(dot.dataset.carouselDot);
+    const matchingSlide = carousel.querySelector(`[data-carousel-slide-index="${dotIndex}"]`);
+    dot.hidden = matchingSlide?.hidden ?? true;
+    dot.classList.toggle("active", dotIndex === activeSlideIndex);
+  });
+}
+
+function advanceCarousel(carousel, direction) {
+  const currentIndex = Number(carousel.dataset.carouselIndex || "0");
+  setCarouselSlide(carousel, currentIndex + direction);
+}
+
+function initProjectMedia(root) {
+  root.querySelectorAll("[data-project-image]").forEach((imageElement) => {
+    imageElement.addEventListener("error", () => {
+      imageElement.hidden = true;
+      const fallback = imageElement.nextElementSibling;
+      if (fallback) fallback.hidden = false;
+    });
+  });
+
+  root.querySelectorAll("[data-carousel]").forEach((carousel) => {
+    if (carousel.dataset.carouselReady === "true") return;
+
+    carousel.dataset.carouselReady = "true";
+    carousel.dataset.carouselIndex = "0";
+
+    carousel.querySelectorAll("[data-carousel-slide]").forEach((slide) => {
+      slide.addEventListener("error", () => {
+        slide.hidden = true;
+        setCarouselSlide(carousel, Number(carousel.dataset.carouselIndex || "0"));
+      });
+    });
+
+    carousel.querySelector("[data-carousel-prev]")?.addEventListener("click", () => {
+      advanceCarousel(carousel, -1);
+    });
+
+    carousel.querySelector("[data-carousel-next]")?.addEventListener("click", () => {
+      advanceCarousel(carousel, 1);
+    });
+
+    carousel.querySelectorAll("[data-carousel-dot]").forEach((dot) => {
+      dot.addEventListener("click", () => {
+        setCarouselSlide(carousel, Number(dot.dataset.carouselDot));
+      });
+    });
+
+    setCarouselSlide(carousel, 0);
+
+    const intervalId = window.setInterval(() => {
+      if (!carousel.isConnected) {
+        window.clearInterval(intervalId);
+        return;
+      }
+
+      advanceCarousel(carousel, 1);
+    }, 5000);
+  });
+}
+
 const appContent = {
   about: {
-    title: "About Brittany",
+    title: "About Me",
     items: [
       {
-        title: "Site Overview",
-        summary: "What this portfolio is, how it was built, and where it is deployed.",
-        content:
-          '<article class="content-block"><h2>Site Overview</h2><p>This is Brittany Wallace&apos;s personal website and Late Night Studio: a place to share portfolio work, design experiments, class projects, and process notes in one interactive space.</p><ul class="entry-list"><li><strong>Content:</strong> Portfolio pieces, inspiration, weekly learning, and current work.</li><li><strong>Design:</strong> A custom desktop-inspired interface with atmospheric styling.</li><li><strong>Code:</strong> Built with vanilla HTML, CSS, and JavaScript.</li><li><strong>Deployment:</strong> Published through GitHub Pages at bwallace11.github.io.</li></ul></article>',
+        title: "Brittany Wallace",
+        summary: "Designer focused on web, UX, visual identity, and expressive interactive work.",
+        content: createProjectContent({
+          title: "Brittany Wallace",
+          summary:
+            "I design atmospheric digital experiences that blend visual storytelling, clear structure, and interaction. My work moves between web design, UX design, logo systems, invitations, and game projects.",
+          images: folderImages("assets/portfolio/AboutMe", ["assets/portfolio/me/bwallacepic.png"]),
+          details: ["Web design", "UX design", "Logo systems", "Invitations and interactive projects"],
+        }),
       },
       {
-        title: "Why a Late Night Studio",
-        summary: "A more personal format than a standard portfolio grid.",
-        content:
-          '<article class="content-block"><h2>Why a Late Night Studio</h2><p>I wanted the portfolio itself to feel designed, not just the projects inside it. The desktop metaphor lets the site show personality while still organizing work into clear categories.</p><p>The goal is to make the site feel handmade, memorable, and unmistakably mine.</p></article>',
+        title: "Fun Things About Me",
+        summary: "A personal notes section for the little details that make the portfolio feel like me.",
+        content: createProjectContent({
+          title: "Fun Things About Me",
+          summary:
+            "A place for favorite creative habits, late-night ideas, games, coffee-fueled work sessions, and the small personality notes that do not fit neatly into a resume.",
+          images: folderImages("assets/portfolio/AboutMe/FunThings"),
+          details: [
+            "I like portfolio work that feels personal, atmospheric, and a little unexpected.",
+            "I enjoy building visual worlds, not just flat project pages.",
+            "This section is ready for photos, favorites, and extra personality details.",
+          ],
+        }),
+      },
+      {
+        title: "Pets",
+        summary: "A dedicated spot for pet photos, names, and tiny life updates.",
+        content: createProjectContent({
+          title: "Pets",
+          summary: "A dedicated spot for pet photos, names, and tiny life updates inside the portfolio.",
+          images: folderImages("assets/portfolio/AboutMe/Pets"),
+          details: [
+            "Add pet pictures to assets/portfolio/AboutMe/Pets to turn this into a carousel.",
+            "This page is set up for names, favorite quirks, and little stories.",
+          ],
+        }),
+      },
+      {
+        title: "Design Focus",
+        summary: "A quick look at the kind of work I want this garden to hold.",
+        content: createProjectContent({
+          title: "Design Focus",
+          summary: "A quick look at the creative sections inside this portfolio garden.",
+          details: [
+            "<strong>Web Design:</strong> Built sites, responsive interfaces, and interactive storytelling.",
+            "<strong>UX Design:</strong> Flows, prototypes, systems, and product concepts.",
+            "<strong>Logo Design:</strong> Identity work with readable marks and flexible lockups.",
+            "<strong>Other Projects:</strong> Invitations, games, print pieces, and playful experiments.",
+          ],
+        }),
       },
     ],
   },
-  notes: {
-    title: "Design Notes",
+  resume: {
+    title: "Resume",
     items: [
       {
-        title: "Typography Ideas",
-        summary: "Pairing serif display with clean sans body systems.",
-        content:
-          "<article class=\"content-block\"><h2>Typography Ideas</h2><p>Testing dramatic serif headings with compact sans body text gives a moody editorial rhythm that still reads cleanly on dark backgrounds.</p><ul class=\"entry-list\"><li>Display serif for headlines only.</li><li>Inter for body and UI labels.</li><li>Tight heading line-height, looser paragraph spacing.</li></ul></article>",
-      },
-      {
-        title: "Color Palette Tests",
-        summary: "Purple tonal experiments for atmospheric contrast.",
-        content:
-          "<article class=\"content-block\"><h2>Color Palette Tests</h2><p>Deep violet and dark plum work best as anchor tones while lavender should stay reserved for highlights and focus states.</p><ul class=\"entry-list\"><li>Near-black base: #08060f.</li><li>Accent glow: lavender with low opacity.</li><li>Never flood large surfaces with neon.</li></ul></article>",
-      },
-      {
-        title: "Layout Studies",
-        summary: "Asymmetric card systems with calm visual balance.",
-        content:
-          "<article class=\"content-block\"><h2>Layout Studies</h2><p>Asymmetry feels intentional when gutters are consistent and type hierarchy remains predictable across every panel.</p><p>Best results so far come from pairing one dominant panel with two compact support cards.</p></article>",
+        title: "Brittany Wallace Resume",
+        summary: "Full-page PDF resume.",
+        content: `
+          <article class="content-block resume-document">
+            <object
+              class="resume-pdf"
+              data="assets/portfolio/Resume/Brittany_Wallace_Resume_Full_Page.pdf"
+              type="application/pdf"
+              aria-label="Brittany Wallace resume PDF"
+            >
+              <a class="content-link" href="assets/portfolio/Resume/Brittany_Wallace_Resume_Full_Page.pdf">Open Brittany Wallace Resume PDF</a>
+            </object>
+          </article>
+        `,
       },
     ],
   },
-  projects: {
-    title: "Project Breakdowns",
+  contact: {
+    title: "Contact Info",
     items: [
       {
-        title: "Work Mode Portfolio",
-        summary: "A deeper portfolio space for featured work and polished presentation.",
-        content:
-          '<article class="content-block"><h2>Work Mode Portfolio</h2><p>Work Mode expands the portfolio into a more focused project-viewing experience. It is linked from both desktop and mobile so the strongest work is easy to reach.</p><p><strong>Path:</strong> <a href="portfolio/work-mode.html">portfolio/work-mode.html</a></p></article>',
-      },
-      {
-        title: "Java Noir Scrollytelling Project",
-        summary: "Cinematic coffee-culture narrative with layered transitions.",
-        content:
-          "<article class=\"content-block\"><h2>Java Noir Scrollytelling Project</h2><p>A cinematic narrative page blending coffee history with atmospheric transitions and section-based storytelling beats.</p><h3>Tools Used</h3><p>HTML, CSS, JavaScript, GSAP, ScrollTrigger</p><h3>Design Decisions</h3><p>Used dark framing, staggered reveal timings, and high-contrast type to keep narrative pacing deliberate.</p></article>",
-      },
-      {
-        title: "History of Web Design Site",
-        summary: "Interactive timeline of web aesthetics by era.",
-        content:
-          "<article class=\"content-block\"><h2>History of Web Design Site</h2><p>An educational timeline that tracks major visual and UX shifts from table layouts to immersive interface systems.</p><h3>Tools Used</h3><p>Semantic HTML, CSS Grid and Flexbox, custom timeline interactions</p><h3>Design Decisions</h3><p>Era-specific accent colors and restrained motion for readability first.</p></article>",
-      },
-      {
-        title: "Yo-Pida Project",
-        summary: "Character-forward concept site with expressive motion.",
-        content:
-          "<article class=\"content-block\"><h2>Yo-Pida Project</h2><p>A playful concept site built around personality-rich visuals, icon sets, and lightweight animation choreography.</p><h3>Tools Used</h3><p>Figma, Illustrator, CSS animations</p><h3>Design Decisions</h3><p>Kept interactions short and snappy so expressive visuals do not overwhelm navigation.</p></article>",
+        title: "Contact",
+        summary: "Email, GitHub, and project inquiry links.",
+        content: createProjectContent({
+          title: "Contact Info",
+          summary: "Send a message about design work, portfolio feedback, collaborations, or project questions.",
+          images: folderImages("assets/portfolio/Contact"),
+          details: [
+            '<strong>Email:</strong> <a href="mailto:hello@brittanywallace.design">hello@brittanywallace.design</a>',
+            '<strong>GitHub:</strong> <a href="https://github.com/bwallace11" target="_blank" rel="noreferrer">github.com/bwallace11</a>',
+          ],
+        }),
       },
     ],
   },
-  experiments: {
-    title: "Design Experiments",
+  "web-design": {
+    title: "Web Design",
     items: [
       {
-        title: "GSAP Scroll Echo",
-        summary: "Delayed glow trails on heading transitions.",
-        content:
-          "<article class=\"content-block\"><h2>GSAP Scroll Echo</h2><p>This experiment focuses on subtle header trails that follow scroll-triggered entry animations to create atmospheric depth.</p></article>",
+        title: "Javanoir Scrollytelling",
+        summary: "Narrative web experience with cinematic scroll pacing.",
+        content: createProjectContent({
+          title: "Javanoir Scrollytelling",
+          summary: "A narrative-driven web project built around mood, pacing, and immersive page transitions.",
+          image: "assets/portfolio/WebDesign/javanoir/cover.png",
+          details: ["Interactive storytelling", "HTML, CSS, JavaScript, GSAP", "Live scrollytelling portfolio project"],
+          link: "https://scrollytelling-javanoir-bwallace.netlify.app/",
+          linkLabel: "Open Live Project",
+        }),
       },
       {
-        title: "Micro Animation Tests",
-        summary: "Button and panel state transitions with subtle depth.",
-        content:
-          "<article class=\"content-block\"><h2>Micro Animation Tests</h2><p>Testing hover and active states with tiny scale shifts, glow intensity changes, and short ease-out timing curves.</p></article>",
+        title: "History of Web Design",
+        summary: "Timeline-style educational site exploring web design eras.",
+        content: createProjectContent({
+          title: "History of Web Design",
+          summary: "An educational website that organizes major web design eras into a readable, visual timeline.",
+          image: "assets/portfolio/WebDesign/historyofwd/cover.png",
+          details: ["Timeline structure", "Era-based visual hierarchy", "Responsive educational layout"],
+          link: "https://historyofwd.netlify.app/",
+          linkLabel: "Open Live Project",
+        }),
       },
       {
-        title: "Layout Prototype Lab",
-        summary: "Floating card and split hero explorations.",
-        content:
-          "<article class=\"content-block\"><h2>Layout Prototype Lab</h2><p>Prototype set exploring split hero layouts with floating note cards and modular spacing presets for rapid concept iteration.</p></article>",
+        title: "NewESD101",
+        summary: "District web redesign work for clearer resources.",
+        content: createProjectContent({
+          title: "NewESD101",
+          summary: "A service-focused web redesign project centered on clearer school and community resources.",
+          image: "assets/portfolio/WebDesign/newesd101/cover.png",
+          details: ["Information architecture", "Department page systems", "Resource navigation"],
+          link: "assets/portfolio/WebDesign/newesd101/Best-Page/NESD101-BestPage.html",
+          linkLabel: "Open Project Page",
+        }),
+      },
+      {
+        title: "2024 Grad Show Website",
+        summary: "Showcase site for SFCC design graduates.",
+        content: createProjectContent({
+          title: "2024 Grad Show Website",
+          summary: "A celebratory showcase site designed to present graduate work with clear structure and visual rhythm.",
+          image: "assets/portfolio/WebDesign/gradshow2024/Gradshow-Website-Mockup.png",
+          details: ["Figma", "WordPress", "Custom HTML and CSS"],
+          link: "https://sfccdesign.com/2024gradshow/",
+          linkLabel: "Open Live Project",
+        }),
+      },
+      {
+        title: "Random Quote Generator",
+        summary: "Small interactive web project with dynamic content.",
+        content: createProjectContent({
+          title: "Random Quote Generator",
+          summary: "A playful web project built to practice JavaScript content updates and interaction feedback.",
+          image: "assets/portfolio/WebDesign/quotegen/cover.png",
+          details: ["HTML", "CSS", "JavaScript"],
+          link: "https://wallacerandomquotegen.netlify.app/",
+          linkLabel: "Open Live Project",
+        }),
+      },
+      {
+        title: "The Keepsake Ledger API Listing",
+        summary: "Scannable data interface for API records.",
+        content: createProjectContent({
+          title: "The Keepsake Ledger API Listing",
+          summary: "A data-focused listing interface built for fast browsing and clear record hierarchy.",
+          image: "assets/portfolio/WebDesign/keepsakeledger/cover.png",
+          details: ["API listing", "Interface hierarchy", "Front-end structure"],
+          link: "https://wallace-apilisting-thekeepsakeledger.netlify.app/",
+          linkLabel: "Open Live Project",
+        }),
+      },
+      {
+        title: "Peace of Mind Dashboard",
+        summary: "Dashboard concept for calm wellbeing tracking.",
+        content: createProjectContent({
+          title: "Peace of Mind Dashboard",
+          summary: "A dashboard concept focused on approachable status visibility and emotional data scanning.",
+          image: "assets/portfolio/WebDesign/peaceofmind/cover.png",
+          details: ["Dashboard UI", "Calm visual system", "Metric organization"],
+          link: "https://wallace-peaceofmind-dashboard.netlify.app/",
+          linkLabel: "Open Live Project",
+        }),
       },
     ],
   },
-  learning: {
-    title: "Learning Logs",
+  "ux-design": {
+    title: "UX Design",
     items: [
       {
-        title: "Week 11 - Motion as Story",
-        summary: "Animation tied to hierarchy and narrative timing.",
-        content:
-          "<article class=\"content-block\"><h2>Week 11 - Motion as Story</h2><p><strong>What I learned:</strong> Motion works best when each animation has a storytelling reason.</p><p><strong>What was difficult:</strong> Maintaining smooth performance with layered visual effects.</p><p><strong>What I experimented with:</strong> Timing offsets and viewport-sensitive trigger thresholds.</p></article>",
+        title: "Nocturne",
+        summary: "Moody restaurant UX concept with clear menu and reservation paths.",
+        content: createProjectContent({
+          title: "Nocturne",
+          summary: "A modern restaurant UX concept balancing atmosphere with fast, clear decision paths.",
+          images: folderImages("assets/portfolio/UXDesign/nocturne", [
+            "assets/portfolio/UXDesign/nocturne/HompageKH.png",
+            "assets/portfolio/UXDesign/nocturne/Nocturnemockup2%201.png",
+            "assets/portfolio/UXDesign/nocturne/NocturneMock3.png",
+          ]),
+          details: ["Figma prototype", "User flow mapping", "Restaurant interface design"],
+          link: "https://www.figma.com/proto/nCVow6D3JEpuHJHY9XOybR/Nocturne?page-id=0%3A1&node-id=1-1018&viewport=-6597%2C-1926%2C0.28&t=8vbov3t8FRKnZNvJ-1&scaling=min-zoom&content-scaling=fixed",
+          linkLabel: "Open Prototype",
+        }),
       },
       {
-        title: "Week 12 - Systems Thinking",
-        summary: "Token-driven design decisions across multiple pages.",
-        content:
-          "<article class=\"content-block\"><h2>Week 12 - Systems Thinking</h2><p><strong>What I learned:</strong> Reusable tokens improve consistency and speed.</p><p><strong>What was difficult:</strong> Naming conventions that scale with project complexity.</p><p><strong>What I experimented with:</strong> Purple tonal ramps tuned for accessible contrast.</p></article>",
+        title: "Kindara",
+        summary: "Mental health website concept with calm support flows.",
+        content: createProjectContent({
+          title: "Kindara",
+          summary: "A supportive mental health UX concept built around calm pacing, trust, and low-friction navigation.",
+          images: folderImages("assets/portfolio/UXDesign/kindara", [
+            "assets/portfolio/UXDesign/kindara/KindaraMockup.png",
+            "assets/portfolio/UXDesign/kindara/kindara-mockup-2%201.png",
+            "assets/portfolio/UXDesign/kindara/Kindar-lowfi%201.png",
+          ]),
+          details: ["UX writing", "Support pathways", "Prototype testing"],
+          link: "https://www.figma.com/proto/hiYKsf8yJsGzTPOtcZ4Blk/Kindara?page-id=5%3A6&node-id=3333-316&viewport=162%2C319%2C0.08&t=XGtuw8JmfDuDjErO-1&scaling=min-zoom&content-scaling=fixed&starting-point-node-id=3324%3A159",
+          linkLabel: "Open Prototype",
+        }),
       },
       {
-        title: "Week 13 - UX Clarity",
-        summary: "Keeping playful visuals usable and clear.",
-        content:
-          "<article class=\"content-block\"><h2>Week 13 - UX Clarity</h2><p><strong>What I learned:</strong> Dense visuals still need obvious navigation affordances.</p><p><strong>What was difficult:</strong> Avoiding clutter while keeping personality.</p><p><strong>What I experimented with:</strong> Progressive disclosure inside desktop-style windows.</p></article>",
+        title: "Inklore",
+        summary: "Trip planning UX with discovery and recommendation workflows.",
+        content: createProjectContent({
+          title: "Inklore",
+          summary: "A travel planning UX prototype focused on discovery, planning, and decision confidence.",
+          images: folderImages("assets/portfolio/UXDesign/inklore", [
+            "assets/portfolio/UXDesign/inklore/InkloreMockup.png",
+            "assets/portfolio/UXDesign/inklore/InkloreMockup2.png",
+            "assets/portfolio/UXDesign/inklore/InkloreMockup3.png",
+            "assets/portfolio/UXDesign/inklore/iNKLORESTICKER.png",
+          ]),
+          details: ["Journey mapping", "Recommendation flow", "Interaction design"],
+          link: "https://www.figma.com/proto/HavXiTc963sPpUNYyX7lA2/Inklore?page-id=0%3A1&node-id=1-823&viewport=424%2C363%2C0.05&t=5exoolhhL3Qgt6P4-1&scaling=min-zoom&content-scaling=fixed&starting-point-node-id=1%3A837",
+          linkLabel: "Open Prototype",
+        }),
+      },
+      {
+        title: "Yo-Pedia",
+        summary: "Folklore learning experience with quizzes and favorites.",
+        content: createProjectContent({
+          title: "Yo-Pedia",
+          summary: "A folklore education concept that uses quizzes, modular content, and saved favorites.",
+          images: folderImages("assets/portfolio/UXDesign/yopedia", [
+            "assets/portfolio/UXDesign/yopedia/yopediaMockup.png",
+            "assets/portfolio/UXDesign/yopedia/yopediamockup2.png",
+            "assets/portfolio/UXDesign/yopedia/yopida-screen.png",
+            "assets/portfolio/UXDesign/yopedia/yopida-hoodie.png",
+          ]),
+          details: ["UX prototyping", "Information design", "Playful learning flow"],
+          link: "https://www.figma.com/proto/bS9zIgjEoz1pq2W5pNvT5Z/Yo-pedia?page-id=0%3A1&node-id=1-2419&viewport=45%2C84%2C0.03&t=CKhp8cC4ySywlFiq-1&scaling=min-zoom&content-scaling=fixed",
+          linkLabel: "Open Prototype",
+        }),
+      },
+      {
+        title: "Greenly",
+        summary: "Eco-action app concept with habit loops and badges.",
+        content: createProjectContent({
+          title: "Greenly",
+          summary: "An eco-action app concept designed to make sustainable habits feel simple and rewarding.",
+          images: folderImages("assets/portfolio/UXDesign/greenly", [
+            "assets/portfolio/UXDesign/greenly/greenly%20mockup%201.png",
+            "assets/portfolio/UXDesign/greenly/greenlyMockup3.png",
+            "assets/portfolio/UXDesign/greenly/fasdfsdvffvfrtggbtgbhgnh%201.png",
+          ]),
+          details: ["Gamification UX", "Progress feedback", "Collaborative design"],
+          link: "https://www.figma.com/proto/VFa9OIap1WKtjWFH3vicj9/Verdantia?page-id=0%3A1&node-id=61-1751&viewport=157%2C181%2C0.11&t=8sqo8z4iXSt86MZg-1&scaling=scale-down&content-scaling=fixed&starting-point-node-id=61%3A1751&show-proto-sidebar=1",
+          linkLabel: "Open Prototype",
+        }),
       },
     ],
   },
-  inspiration: {
-    title: "Inspiration Library",
+  "logo-design": {
+    title: "Logo Design",
     items: [
       {
-        title: "Web and Visual Influence Board",
-        summary: "Reference sets from websites, music, game UI, and culture.",
-        content:
-          "<article class=\"content-block\"><h2>Web and Visual Influence Board</h2><div class=\"inspiration-grid\"><section><h3>Websites</h3><p>Immersive portfolios, web storytelling projects, and nostalgic personal pages.</p></section><section><h3>Music Aesthetics</h3><p>Ambient night-drive sets, dark lo-fi, and synth textures.</p></section><section><h3>Game UI</h3><p>RPG menu systems, diegetic HUD ideas, and inventory interactions.</p></section><section><h3>Dark and Gothic Design</h3><p>Victorian typography, moody textures, and shadow-based layering.</p></section><section><h3>Internet Culture</h3><p>Forum-era weird web energy and handcrafted digital spaces.</p></section></div></article>",
+        title: "Local 931",
+        summary: "Local-first identity concept with bold, approachable readability.",
+        content: createProjectContent({
+          title: "Local 931",
+          summary: "A community-focused identity concept built around clear lockups and local personality.",
+          images: folderImages("assets/portfolio/LogoDesign/Local931", [
+            "assets/portfolio/LogoDesign/Local931/931Local-logo.jpg",
+            "assets/portfolio/LogoDesign/Local931/931tshirtmockup.png",
+          ]),
+          details: ["Logo exploration", "Brand mark development", "Signage and digital flexibility"],
+        }),
       },
       {
-        title: "Moodboard Notes",
-        summary: "Visual notes for midnight workspace energy.",
-        content:
-          "<article class=\"content-block\"><h2>Moodboard Notes</h2><p>Core mood: quiet, glowing, and a little mysterious. Nothing loud or corporate, always intimate and handcrafted.</p><ul class=\"entry-list\"><li>Screen-light contrast over flat backgrounds.</li><li>Nostalgic but modern interface framing.</li><li>Soft glows instead of hard neon blocks.</li></ul></article>",
+        title: "Friends of The Centennial Trail Logo",
+        summary: "Trail-focused community identity with outdoor energy.",
+        content: createProjectContent({
+          title: "Friends of The Centennial Trail Logo",
+          summary: "A community logo concept shaped around trees, trail movement, and an accessible outdoor mark.",
+          images: folderImages("assets/portfolio/LogoDesign/FriendsCentennialTrail", [
+            "assets/portfolio/LogoDesign/FriendsCentennialTrail/FOTCT-8.png",
+            "assets/portfolio/LogoDesign/FriendsCentennialTrail/naturetshirt.jpg",
+          ]),
+          details: ["Logo system", "Outdoor nonprofit identity", "Merch and community use"],
+        }),
+      },
+      {
+        title: "The Sunshine Club Logo",
+        summary: "Sunny, playful logo system with apparel and event uses.",
+        content: createProjectContent({
+          title: "The Sunshine Club Logo",
+          summary: "A bright identity system with a sunglasses sun mark, expressive typography, and friendly event energy.",
+          images: folderImages("assets/portfolio/LogoDesign/SunshineClub", [
+            "assets/portfolio/LogoDesign/SunshineClub/SunshineClubLogo.png",
+            "assets/portfolio/LogoDesign/SunshineClub/538600355_1306171467868836_5871361979572095778_n.jpg",
+            "assets/portfolio/LogoDesign/SunshineClub/480967944_1168310114988306_7159077442531729478_n.jpg",
+          ]),
+          details: ["Logo design", "Apparel mockups", "Event banner application"],
+        }),
+      },
+      {
+        title: "Nightmare Fuel",
+        summary: "Coffee brand identity with a bold creature mark and packaging mockups.",
+        content: createProjectContent({
+          title: "Nightmare Fuel",
+          summary: "A moody coffee identity built around a purple monster mark, bright green accent color, and packaging applications.",
+          images: folderImages("assets/portfolio/LogoDesign/NightmareFuel", [
+            "assets/portfolio/LogoDesign/NightmareFuel/nightmarefuel.png",
+            "assets/portfolio/LogoDesign/NightmareFuel/nightmarefuelMockup.jpg",
+          ]),
+          details: ["Logo design", "Packaging mockups", "Brand application"],
+        }),
       },
     ],
   },
-  snippets: {
-    title: "Code Snippets",
+  "other-projects": {
+    title: "Other Projects",
     items: [
       {
-        title: "Dark Mode Toggle",
-        summary: "Single-line class toggle starter.",
-        content:
-          "<article class=\"content-block\"><h2>Dark Mode Toggle</h2><pre><code>document.body.classList.toggle('dark-mode');</code></pre></article>",
+        title: "My Attack On Travis Game",
+        summary: "Game project placed first in the other-projects folder.",
+        content: createProjectContent({
+          title: "My Attack On Travis Game",
+          summary: "A game project included in the portfolio's other creative work section.",
+          images: folderImages("assets/portfolio/OtherProjects/AttackOnTravis", [
+            "assets/portfolio/OtherProjects/AttackOnTravis/AtackonTravis-Cover.jpg",
+          ]),
+          details: ["Game concept", "Interactive project", "Creative coding"],
+          link: "https://gd.games/bwallace/attack-on-travis",
+          linkLabel: "Play Game",
+        }),
       },
       {
-        title: "CSS Grid Template",
-        summary: "12-column layout starter block.",
-        content:
-          "<article class=\"content-block\"><h2>CSS Grid Template</h2><pre><code>.layout {\n  display: grid;\n  grid-template-columns: repeat(12, 1fr);\n  gap: 1rem;\n}</code></pre></article>",
+        title: "The Last Place We Played Game",
+        summary: "Game project listed before the invitation work.",
+        content: createProjectContent({
+          title: "The Last Place We Played Game",
+          summary: "A game project focused on interactive storytelling and playable experience design.",
+          images: folderImages("assets/portfolio/OtherProjects/TheLastPlaceWePlayed", [
+            "assets/portfolio/OtherProjects/TheLastPlaceWePlayed/Title-Page-Full.jpg",
+          ]),
+          details: ["Game design", "Interactive narrative", "Atmospheric direction"],
+          link: "https://gd.games/bwallace/the-last-place-we-played",
+          linkLabel: "Play Game",
+        }),
       },
       {
-        title: "GSAP Starter Pattern",
-        summary: "Simple staggered reveal animation.",
-        content:
-          "<article class=\"content-block\"><h2>GSAP Starter Pattern</h2><pre><code>gsap.from('.card', {\n  y: 24,\n  opacity: 0,\n  duration: 0.8,\n  stagger: 0.1\n});</code></pre></article>",
-      },
-    ],
-  },
-  now: {
-    title: "Now",
-    items: [
-      {
-        title: "Current Focus",
-        summary: "School, projects, and interactive web growth.",
-        content:
-          "<article class=\"content-block\"><h2>Current Focus</h2><ul class=\"entry-list\"><li>Working through my graphic design degree.</li><li>Building interactive portfolio projects weekly.</li><li>Learning GSAP deeply with late-night build sessions.</li><li>Collecting inspiration from games and atmospheric web work.</li></ul></article>",
+        title: "Caitylnn's Wedding Invite",
+        summary: "Custom wedding invitation design.",
+        content: createProjectContent({
+          title: "Caitylnn's Wedding Invite",
+          summary: "A custom wedding invitation piece built around event tone, hierarchy, and print-friendly layout.",
+          images: folderImages("assets/portfolio/OtherProjects/CaitylnnWeddingInvite", [
+            "assets/portfolio/OtherProjects/CaitylnnWeddingInvite/caitymockup3.jpg",
+            "assets/portfolio/OtherProjects/CaitylnnWeddingInvite/caityinviteNew.jpg",
+          ]),
+          details: ["Invitation design", "Typography", "Print layout"],
+        }),
       },
       {
-        title: "Life Lately",
-        summary: "Coffee-fueled creation and nightly coding rhythm.",
-        content:
-          "<article class=\"content-block\"><h2>Life Lately</h2><p>Most nights are split between coursework, idea sketching, and prototyping interfaces that feel personal, cinematic, and alive.</p></article>",
+        title: "Jacob's Birthday Invite",
+        summary: "Comic-inspired birthday invitation design.",
+        content: createProjectContent({
+          title: "Jacob's Birthday Invite",
+          summary: "A bold birthday invite with comic-inspired styling and clear event information.",
+          images: folderImages("assets/portfolio/OtherProjects/JacobBirthdayInvite", [
+            "assets/portfolio/OtherProjects/JacobBirthdayInvite/Jacobinvite3.jpg",
+          ]),
+          details: ["Invitation design", "Comic visual style", "Print layout"],
+        }),
+      },
+      {
+        title: "Dad and Deb Wedding Invite",
+        summary: "Personal wedding invitation design.",
+        content: createProjectContent({
+          title: "Dad and Deb Wedding Invite",
+          summary: "A personal wedding invitation piece with custom visual direction and clean event hierarchy.",
+          images: folderImages("assets/portfolio/OtherProjects/DadDebWeddingInvite", [
+            "assets/portfolio/OtherProjects/DadDebWeddingInvite/D%26DWInv.jpg",
+          ]),
+          details: ["Wedding invite", "Typography", "Personal event design"],
+        }),
       },
     ],
   },
@@ -181,55 +574,6 @@ const appContent = {
 
 let topZ = 20;
 const openWindows = new Map();
-
-function attachConstellationEffect(windowElement) {
-  const grid = windowElement.querySelector(".inspiration-grid");
-  if (!grid || grid.querySelector(".constellation-layer")) return;
-
-  const sections = [...grid.querySelectorAll("section")];
-  if (sections.length < 2) return;
-
-  const svgNs = "http://www.w3.org/2000/svg";
-  const svg = document.createElementNS(svgNs, "svg");
-  svg.classList.add("constellation-layer");
-  grid.prepend(svg);
-
-  function drawLines(targetSection) {
-    svg.replaceChildren();
-    if (!targetSection) return;
-
-    const gridRect = grid.getBoundingClientRect();
-    const sourceRect = targetSection.getBoundingClientRect();
-    const x1 = sourceRect.left - gridRect.left + sourceRect.width / 2;
-    const y1 = sourceRect.top - gridRect.top + sourceRect.height / 2;
-
-    sections.forEach((section) => {
-      if (section === targetSection) return;
-
-      const rect = section.getBoundingClientRect();
-      const x2 = rect.left - gridRect.left + rect.width / 2;
-      const y2 = rect.top - gridRect.top + rect.height / 2;
-      const distance = Math.hypot(x2 - x1, y2 - y1);
-
-      if (distance > 280) return;
-
-      const opacity = Math.max(0.16, 0.5 - distance / 560);
-      const line = document.createElementNS(svgNs, "line");
-      line.setAttribute("x1", x1.toFixed(2));
-      line.setAttribute("y1", y1.toFixed(2));
-      line.setAttribute("x2", x2.toFixed(2));
-      line.setAttribute("y2", y2.toFixed(2));
-      line.setAttribute("stroke", `rgba(216, 180, 254, ${opacity.toFixed(3)})`);
-      line.setAttribute("stroke-width", "1.1");
-      svg.appendChild(line);
-    });
-  }
-
-  sections.forEach((section) => {
-    section.addEventListener("mouseenter", () => drawLines(section));
-    section.addEventListener("mouseleave", () => drawLines(null));
-  });
-}
 
 function updateClock() {
   const now = new Date();
@@ -321,14 +665,13 @@ function renderPage(windowData, itemIndex) {
     </section>
   `;
 
+  initProjectMedia(windowData.content);
+
   const pageClose = windowData.content.querySelector(".page-close");
   pageClose.addEventListener("click", () => {
     renderFolder(windowData);
   });
 
-  if (windowData.appId === "inspiration") {
-    attachConstellationEffect(windowData.element);
-  }
 }
 
 function createWindow(appId) {
@@ -345,8 +688,15 @@ function createWindow(appId) {
   windowElement.className = "window";
   windowElement.setAttribute("role", "dialog");
   windowElement.setAttribute("aria-label", appData.title);
-  windowElement.style.top = `${70 + openWindows.size * 26}px`;
-  windowElement.style.left = `${220 + openWindows.size * 32}px`;
+
+  const estimatedWindowWidth = Math.min(78 * 16, window.innerWidth * 0.9);
+  const nextTop = Math.min(70 + openWindows.size * 26, Math.max(12, window.innerHeight - 560));
+  const nextLeft = Math.min(
+    220 + openWindows.size * 32,
+    Math.max(12, window.innerWidth - estimatedWindowWidth - 16)
+  );
+  windowElement.style.top = `${nextTop}px`;
+  windowElement.style.left = `${nextLeft}px`;
 
   windowElement.innerHTML = `
     <header class="window-header">
@@ -448,7 +798,7 @@ document.addEventListener("click", (event) => {
 function buildMobileCards() {
   mobileCards.innerHTML = "";
 
-  Object.values(appContent).forEach((app) => {
+  portfolioAppOrder.map((appId) => appContent[appId]).forEach((app) => {
     const card = document.createElement("article");
     card.className = "mobile-card";
     card.innerHTML = `
@@ -462,17 +812,6 @@ function buildMobileCards() {
 
     mobileCards.appendChild(card);
   });
-
-  const workModeCard = document.createElement("article");
-  workModeCard.className = "mobile-card";
-  workModeCard.innerHTML = `
-    <header class="mobile-card-header">Featured Link</header>
-    <div class="mobile-card-content">
-      <p>Work Mode is the expanded portfolio view for featured projects.</p>
-      <a class="mobile-work-link mobile-card-link" href="portfolio/work-mode.html">Open Work Mode</a>
-    </div>
-  `;
-  mobileCards.appendChild(workModeCard);
 }
 
 updateClock();

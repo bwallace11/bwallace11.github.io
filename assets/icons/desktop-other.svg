@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Other projects icon">
+  <defs>
+    <linearGradient id="bg" x1="30" y1="23" x2="222" y2="232" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#d8874d"/>
+      <stop offset="1" stop-color="#9c522c"/>
+    </linearGradient>
+    <linearGradient id="box" x1="72" y1="89" x2="183" y2="181" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffe2a3"/>
+      <stop offset="1" stop-color="#eead67"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#4f2410" flood-opacity=".45"/>
+    </filter>
+  </defs>
+  <rect x="16" y="16" width="224" height="224" rx="44" fill="url(#bg)"/>
+  <rect x="17" y="17" width="222" height="222" rx="43" fill="none" stroke="#ffc385" stroke-opacity=".45" stroke-width="2"/>
+  <g filter="url(#soft)">
+    <path d="M98 107c5-27 26-42 56-36 20 5 34 20 38 40z" fill="#ffd375"/>
+    <rect x="61" y="110" width="134" height="39" rx="10" fill="#ffcc87" stroke="#8d421c" stroke-width="4"/>
+    <rect x="75" y="140" width="106" height="56" rx="12" fill="url(#box)" stroke="#8d421c" stroke-width="4"/>
+    <rect x="104" y="159" width="48" height="10" rx="5" fill="#9b4a22"/>
+    <path d="M65 53l10 22 24 8-24 8-10 23-10-23-24-8 24-8zM194 64l7 15 16 6-16 6-7 16-7-16-16-6 16-6zM124 50l4 8 9 3-9 4-4 9-4-9-9-4 9-3z" fill="#fff3b5"/>
+  </g>
+</svg>
