@@ -23,8 +23,8 @@
       <div class="stars"></div>
       <div class="nebula"></div>
       <div class="grain"></div>
-      <div class="moth moth-1">*</div>
-      <div class="moth moth-2">*</div>
+      <div class="moth moth-1">&#10022;</div>
+      <div class="moth moth-2">&#129415;</div>
       <div class="mothman" title="The Mothman is watching...">
         <img src="assets/images/mothman.png" alt="" class="mothman-img" />
       </div>
@@ -32,45 +32,58 @@
 
     <main id="desktop-main" class="desktop" aria-label="Brittany's Late Night Studio desktop environment">
       <aside class="desktop-intro" aria-label="Site overview">
-        <p class="desktop-intro-kicker">DESIGN • CODE • AFTER DARK</p>
-        <h1>Welcome to Brittany's Late Night Studio</h1>
+        <p class="desktop-intro-kicker"><strong>BRITTANY WALLACE | DESIGNER + DEVELOPER</strong></p>
+        <h1>Brittany&rsquo;s Late Night Studio</h1>
         <p>
-          A personal portfolio featuring web design, UX, branding, and creative projects made after dark.
+          <em>Front-end web design, graphic design, and interactive projects built with HTML, CSS, and JavaScript.</em>
         </p>
       </aside>
 
       <section class="desktop-icons" aria-label="Desktop shortcuts">
-        <button class="desktop-icon" data-app="about" aria-label="Open About Me">
-          <span class="icon-art" aria-hidden="true"><img src="assets/icons/desktop-about.svg" alt="" /></span>
+        <button class="desktop-icon" data-app="about" aria-label="Open About Me folder">
+          <span class="icon-art" aria-hidden="true"><img src="assets/icons/aboutmeIcon.png" alt="" /></span>
           <span class="icon-label">About Me</span>
         </button>
-        <button class="desktop-icon" data-app="resume" aria-label="Open Resume">
-          <span class="icon-art" aria-hidden="true"><img src="assets/icons/desktop-resume.svg" alt="" /></span>
+        <button class="desktop-icon" data-app="resume" aria-label="Open Resume folder">
+          <span class="icon-art" aria-hidden="true"><img src="assets/icons/resumeIcon.png" alt="" /></span>
           <span class="icon-label">Resume</span>
         </button>
-        <button class="desktop-icon" data-app="contact" aria-label="Open Contact Info">
-          <span class="icon-art" aria-hidden="true"><img src="assets/icons/desktop-contact.svg" alt="" /></span>
-          <span class="icon-label">Contact Info</span>
-        </button>
-        <button class="desktop-icon" data-app="web-design" aria-label="Open Web Design projects">
-          <span class="icon-art" aria-hidden="true"><img src="assets/icons/desktop-web.svg" alt="" /></span>
+        <button class="desktop-icon" data-app="web-design" aria-label="Open Web Design folder">
+          <span class="icon-art" aria-hidden="true"><img src="assets/icons/webDesignIcon.png" alt="" /></span>
           <span class="icon-label">Web Design</span>
         </button>
-        <button class="desktop-icon" data-app="ux-design" aria-label="Open UX Design projects">
-          <span class="icon-art" aria-hidden="true"><img src="assets/icons/desktop-ux.svg" alt="" /></span>
+        <button class="desktop-icon" data-app="ux-design" aria-label="Open UX Design folder">
+          <span class="icon-art" aria-hidden="true"><img src="assets/icons/uxDesignIcon.png" alt="" /></span>
           <span class="icon-label">UX Design</span>
         </button>
-        <button class="desktop-icon" data-app="logo-design" aria-label="Open Logo Design projects">
-          <span class="icon-art" aria-hidden="true"><img src="assets/icons/desktop-logo.svg" alt="" /></span>
+        <button class="desktop-icon" data-app="logo-design" aria-label="Open Logo Design folder">
+          <span class="icon-art" aria-hidden="true"><img src="assets/icons/logoIcon.png" alt="" /></span>
           <span class="icon-label">Logo Design</span>
         </button>
-        <button class="desktop-icon" data-app="other-projects" aria-label="Open Other Projects">
-          <span class="icon-art" aria-hidden="true"><img src="assets/icons/desktop-other.svg" alt="" /></span>
+        <button class="desktop-icon" data-app="other-projects" aria-label="Open Other Projects folder">
+          <span class="icon-art" aria-hidden="true"><img src="assets/icons/otherProjectsIcon.png" alt="" /></span>
           <span class="icon-label">Other Projects</span>
         </button>
       </section>
 
       <section class="window-layer" id="window-layer" aria-live="polite"></section>
+
+      <section class="contact-panel" id="contact-panel" aria-label="Contact information" aria-hidden="true">
+        <header class="contact-panel-header">
+          <span>Contact</span>
+          <button class="contact-panel-close" id="contact-panel-close" type="button" aria-label="Close contact panel">&times;</button>
+        </header>
+        <div class="contact-panel-content">
+          <a class="contact-row" href="mailto:hello@brittanywallace.design">
+            <span>Email</span>
+            <strong>hello@brittanywallace.design</strong>
+          </a>
+          <a class="contact-row" href="https://github.com/bwallace11" target="_blank" rel="noreferrer">
+            <span>GitHub</span>
+            <strong>github.com/bwallace11</strong>
+          </a>
+        </div>
+      </section>
 
       <footer class="taskbar" aria-label="Desktop dock">
         <div class="taskbar-title">
@@ -79,7 +92,11 @@
         </div>
         <div id="taskbar-windows" class="taskbar-windows" aria-label="Open windows"></div>
         <div class="taskbar-right">
-          <span class="taskbar-coffee" aria-hidden="true">Portfolio</span>
+          <button class="contact-tab" id="contact-tab" type="button" aria-controls="contact-panel" aria-expanded="false">
+            <img src="assets/icons/contactIcon.png" alt="" />
+            <span>Contact</span>
+          </button>
+          <span class="taskbar-coffee" aria-hidden="true">&#9749;</span>
           <time id="clock" aria-label="Current time"></time>
         </div>
       </footer>
@@ -87,10 +104,10 @@
 
     <main class="mobile-garden" aria-label="Mobile view of Brittany's Late Night Studio">
       <header class="mobile-header">
-        <p class="mobile-kicker">DESIGN • CODE • AFTER DARK</p>
-        <h1>Welcome to Brittany's Late Night Studio</h1>
+        <p class="mobile-kicker">BRITTANY WALLACE | DESIGNER + DEVELOPER</p>
+        <h1>Brittany&rsquo;s Late Night Studio</h1>
         <p>
-          A personal portfolio featuring web design, UX, branding, and creative projects made after dark.
+          <em>Front-end web design, graphic design, and interactive projects built with HTML, CSS, and JavaScript.</em>
         </p>
       </header>
       <section class="mobile-cards" id="mobile-cards"></section>

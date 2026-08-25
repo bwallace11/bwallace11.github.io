@@ -3,15 +3,18 @@ const windowLayer = document.getElementById("window-layer");
 const taskbarWindows = document.getElementById("taskbar-windows");
 const mobileCards = document.getElementById("mobile-cards");
 const clockElement = document.getElementById("clock");
+const contactTab = document.getElementById("contact-tab");
+const contactPanel = document.getElementById("contact-panel");
+const contactPanelClose = document.getElementById("contact-panel-close");
 
 const portfolioAppOrder = [
   "about",
   "resume",
-  "contact",
   "web-design",
   "ux-design",
   "logo-design",
   "other-projects",
+  "contact",
 ];
 
 const folderImageNames = ["cover", "01", "02", "03", "04"];
@@ -27,10 +30,11 @@ function folderImages(folder, existingImages = []) {
 
 function createProjectContent({
   title,
-  summary,
+  summary = "",
   image,
   images = [],
   details = [],
+  body = "",
   link = "",
   linkLabel = "Open Project",
 }) {
@@ -61,6 +65,7 @@ function createProjectContent({
   const detailMarkup = details.length
     ? `<ul class="entry-list">${details.map((detail) => `<li>${detail}</li>`).join("")}</ul>`
     : "";
+  const summaryMarkup = summary ? `<p>${summary}</p>` : "";
   const externalAttributes = /^https?:\/\//i.test(link) ? ' target="_blank" rel="noreferrer"' : "";
   const linkMarkup = link
     ? `<p><a class="content-link" href="${link}"${externalAttributes}>${linkLabel}</a></p>`
@@ -70,11 +75,53 @@ function createProjectContent({
     <article class="content-block portfolio-entry">
       ${snapshotMarkup}
       <div class="portfolio-info">
-        <h2>${title}</h2>
-        <p>${summary}</p>
+        ${summaryMarkup}
+        ${body}
         ${detailMarkup}
         ${linkMarkup}
       </div>
+    </article>
+  `;
+}
+
+function createPetContent(pets) {
+  return `
+    <article class="content-block pet-slider" data-pet-slider>
+      <blockquote class="pet-slider-intro">
+        <p>The unofficial Late Night Studio staff. Their responsibilities mostly include supervising, interrupting work, and appearing exactly when I&rsquo;m trying to concentrate.</p>
+      </blockquote>
+      <div class="pet-slider-stage">
+        ${pets
+          .map(
+            (pet, index) => `
+              <section class="pet-slide ${index === 0 ? "active" : ""}" data-pet-slide="${index}" ${index === 0 ? "" : "hidden"}>
+                <figure class="project-snapshot pet-snapshot">
+                  <img src="${pet.image}" alt="${pet.name} portrait" data-project-image />
+                  <span class="project-snapshot-fallback" hidden>${pet.name}</span>
+                </figure>
+                <div class="portfolio-info pet-slide-info">
+                  <section class="pet-card">
+                    <h3>${pet.name}</h3>
+                    <p class="pet-meta">${pet.meta}</p>
+                    <dl class="pet-facts">
+                      <div><dt>Studio Job:</dt><dd>${pet.job}</dd></div>
+                      <div><dt>Personality:</dt><dd>${pet.personality}</dd></div>
+                      <div><dt>Favorite Things:</dt><dd>${pet.favoriteThings}</dd></div>
+                      <div><dt>Story:</dt><dd>${pet.story}</dd></div>
+                      <div><dt>Special Talent:</dt><dd>${pet.specialTalent}</dd></div>
+                    </dl>
+                  </section>
+                </div>
+              </section>
+            `
+          )
+          .join("")}
+      </div>
+      <footer class="pet-slider-controls" aria-label="Pet profile controls">
+        <button class="pet-nav-btn" type="button" data-pet-prev aria-label="Previous pet">&lt;</button>
+        <span class="pet-counter" data-pet-counter>1 / ${pets.length}</span>
+        <button class="pet-nav-btn" type="button" data-pet-next aria-label="Next pet">&gt;</button>
+      </footer>
     </article>
   `;
 }
@@ -103,7 +150,9 @@ function setCarouselSlide(carousel, index) {
   const activeSlideIndex = Number(slides[nextIndex].dataset.carouselSlideIndex);
 
   slides.forEach((slide, slideIndex) => {
-    slide.classList.toggle("active", slideIndex === nextIndex);
+    const active = slideIndex === nextIndex;
+    slide.classList.toggle("active", active);
+    slide.tabIndex = active ? 0 : -1;
   });
 
   dots.forEach((dot) => {
@@ -119,12 +168,130 @@ function advanceCarousel(carousel, direction) {
   setCarouselSlide(carousel, currentIndex + direction);
 }
 
+function setPetSlide(slider, index) {
+  const slides = [...slider.querySelectorAll("[data-pet-slide]")];
+  if (!slides.length) return;
+
+  const nextIndex = ((index % slides.length) + slides.length) % slides.length;
+  slider.dataset.petIndex = String(nextIndex);
+
+  slides.forEach((slide, slideIndex) => {
+    const active = slideIndex === nextIndex;
+    slide.hidden = !active;
+    slide.classList.toggle("active", active);
+    slide.querySelectorAll("img, button, a").forEach((element) => {
+      element.tabIndex = active ? 0 : -1;
+    });
+  });
+
+  const counter = slider.querySelector("[data-pet-counter]");
+  if (counter) counter.textContent = `${nextIndex + 1} / ${slides.length}`;
+}
+
+function initPetSliders(root) {
+  root.querySelectorAll("[data-pet-slider]").forEach((slider) => {
+    if (slider.dataset.petSliderReady === "true") return;
+
+    slider.dataset.petSliderReady = "true";
+    slider.dataset.petIndex = "0";
+
+    slider.querySelector("[data-pet-prev]")?.addEventListener("click", () => {
+      setPetSlide(slider, Number(slider.dataset.petIndex || "0") - 1);
+    });
+
+    slider.querySelector("[data-pet-next]")?.addEventListener("click", () => {
+      setPetSlide(slider, Number(slider.dataset.petIndex || "0") + 1);
+    });
+
+    setPetSlide(slider, 0);
+  });
+}
+
+let previewLightboxElement = null;
+
+function closePreviewLightbox() {
+  if (!previewLightboxElement) return;
+  previewLightboxElement.hidden = true;
+}
+
+function getPreviewLightbox() {
+  if (previewLightboxElement) return previewLightboxElement;
+
+  previewLightboxElement = document.createElement("section");
+  previewLightboxElement.className = "preview-lightbox";
+  previewLightboxElement.hidden = true;
+  previewLightboxElement.setAttribute("role", "dialog");
+  previewLightboxElement.setAttribute("aria-modal", "true");
+  previewLightboxElement.setAttribute("aria-label", "Expanded project preview");
+  previewLightboxElement.innerHTML = `
+    <div class="preview-lightbox-frame">
+      <button class="preview-lightbox-close" type="button" aria-label="Close expanded preview">&times;</button>
+      <img class="preview-lightbox-img" src="" alt="" />
+    </div>
+  `;
+
+  previewLightboxElement.addEventListener("click", (event) => {
+    if (event.target === previewLightboxElement) closePreviewLightbox();
+  });
+
+  previewLightboxElement.querySelector(".preview-lightbox-close").addEventListener("click", closePreviewLightbox);
+  document.body.appendChild(previewLightboxElement);
+
+  return previewLightboxElement;
+}
+
+function openPreviewLightbox(src, alt) {
+  const lightbox = getPreviewLightbox();
+  const image = lightbox.querySelector(".preview-lightbox-img");
+  image.src = src;
+  image.alt = alt;
+  lightbox.hidden = false;
+  lightbox.querySelector(".preview-lightbox-close").focus();
+}
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closePreviewLightbox();
+    setContactPanelOpen(false);
+  }
+});
+
+function setContactPanelOpen(open) {
+  if (!contactTab || !contactPanel) return;
+
+  contactPanel.classList.toggle("open", open);
+  contactPanel.setAttribute("aria-hidden", String(!open));
+  contactTab.setAttribute("aria-expanded", String(open));
+}
+
 function initProjectMedia(root) {
   root.querySelectorAll("[data-project-image]").forEach((imageElement) => {
     imageElement.addEventListener("error", () => {
       imageElement.hidden = true;
       const fallback = imageElement.nextElementSibling;
       if (fallback) fallback.hidden = false;
+    });
+  });
+
+  root.querySelectorAll(".project-snapshot img").forEach((imageElement) => {
+    if (imageElement.dataset.previewReady === "true") return;
+
+    imageElement.dataset.previewReady = "true";
+    imageElement.tabIndex = 0;
+    imageElement.setAttribute("role", "button");
+    imageElement.setAttribute("aria-label", `Open larger preview of ${imageElement.alt || "project image"}`);
+
+    const openPreview = () => {
+      if (imageElement.hidden) return;
+      openPreviewLightbox(imageElement.currentSrc || imageElement.src, imageElement.alt || "Project preview");
+    };
+
+    imageElement.addEventListener("click", openPreview);
+    imageElement.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openPreview();
+      }
     });
   });
 
@@ -166,6 +333,8 @@ function initProjectMedia(root) {
       advanceCarousel(carousel, 1);
     }, 5000);
   });
+
+  initPetSliders(root);
 }
 
 const appContent = {
@@ -174,13 +343,34 @@ const appContent = {
     items: [
       {
         title: "Brittany Wallace",
-        summary: "Designer focused on web, UX, visual identity, and expressive interactive work.",
+        summary: "Graphic designer and front-end web designer.",
         content: createProjectContent({
           title: "Brittany Wallace",
-          summary:
-            "I design atmospheric digital experiences that blend visual storytelling, clear structure, and interaction. My work moves between web design, UX design, logo systems, invitations, and game projects.",
-          images: folderImages("assets/portfolio/AboutMe", ["assets/portfolio/me/bwallacepic.png"]),
-          details: ["Web design", "UX design", "Logo systems", "Invitations and interactive projects"],
+          image: "assets/portfolio/me/bwallacepic.png",
+          body: `
+            <h3>Intro</h3>
+            <blockquote>
+              <p>I&rsquo;m a graphic designer and front-end web designer who loves working where visual design and code meet. I create websites, interactive experiences, branding, and digital projects that balance personality with usability.</p>
+              <p>I especially enjoy taking an idea from a rough concept and turning it into something people can actually see, use, and interact with.</p>
+            </blockquote>
+            <div class="profile-chip-list" aria-label="Creative skills">
+              <span class="profile-chip">Graphic Design</span>
+              <span class="profile-chip">Front-End Web Design</span>
+              <span class="profile-chip">UX/UI Design</span>
+              <span class="profile-chip">Interactive Design</span>
+              <span class="profile-chip">Branding</span>
+              <span class="profile-chip">Creative Coding</span>
+            </div>
+            <section class="quick-facts" aria-label="Quick facts">
+              <h3>Quick Facts</h3>
+              <dl class="fact-list">
+                <div><dt>Based in:</dt><dd>Washington</dd></div>
+                <div><dt>Favorite Color:</dt><dd>Purple</dd></div>
+                <div><dt>Best Working Hours:</dt><dd>Late</dd></div>
+                <div><dt>Usually Creating:</dt><dd>Websites, graphics, or something unnecessarily complicated</dd></div>
+              </dl>
+            </section>
+          `,
         }),
       },
       {
@@ -188,41 +378,121 @@ const appContent = {
         summary: "A personal notes section for the little details that make the portfolio feel like me.",
         content: createProjectContent({
           title: "Fun Things About Me",
-          summary:
-            "A place for favorite creative habits, late-night ideas, games, coffee-fueled work sessions, and the small personality notes that do not fit neatly into a resume.",
           images: folderImages("assets/portfolio/AboutMe/FunThings"),
-          details: [
-            "I like portfolio work that feels personal, atmospheric, and a little unexpected.",
-            "I enjoy building visual worlds, not just flat project pages.",
-            "This section is ready for photos, favorites, and extra personality details.",
-          ],
+          body: `
+            <h3>Small intro</h3>
+            <blockquote>
+              <p>There&rsquo;s more to me than design files and browser tabs. Here are a few things that make me, me.</p>
+            </blockquote>
+            <div class="personal-list">
+              <section class="personal-card">
+                <h3>Night Owl</h3>
+                <p>My best ideas have a suspicious habit of showing up after midnight.</p>
+              </section>
+              <section class="personal-card">
+                <h3>Purple Everything</h3>
+                <p>Purple has been my favorite color long enough that resisting it in my designs takes actual effort.</p>
+              </section>
+              <section class="personal-card">
+                <h3>Coffee Powered</h3>
+                <p>Cold brew is basically part of the creative process at this point.</p>
+              </section>
+              <section class="personal-card">
+                <h3>Gamer</h3>
+                <p>Games are one of my favorite sources of inspiration for storytelling, atmosphere, interaction, and visual design.</p>
+              </section>
+              <section class="personal-card">
+                <h3>Spooky Stuff</h3>
+                <p>I love dark, gothic, strange, mysterious, and slightly creepy things.</p>
+              </section>
+              <section class="personal-card">
+                <h3>I Like Making Things</h3>
+                <p>Digital projects, crafts, weird experiments, websites. Apparently having one hobby was too reasonable.</p>
+              </section>
+              <section class="personal-card">
+                <h3>Always Learning</h3>
+                <p>I&rsquo;m constantly trying new design tools, coding techniques, and creative ideas.</p>
+              </section>
+            </div>
+          `,
         }),
       },
       {
-        title: "Pets",
-        summary: "A dedicated spot for pet photos, names, and tiny life updates.",
-        content: createProjectContent({
-          title: "Pets",
-          summary: "A dedicated spot for pet photos, names, and tiny life updates inside the portfolio.",
-          images: folderImages("assets/portfolio/AboutMe/Pets"),
-          details: [
-            "Add pet pictures to assets/portfolio/AboutMe/Pets to turn this into a carousel.",
-            "This page is set up for names, favorite quirks, and little stories.",
-          ],
-        }),
+        title: "Meet the Pets",
+        summary: "The unofficial Late Night Studio staff.",
+        content: createPetContent([
+          {
+            name: "Max",
+            meta: "15 years old | Terrier Mix",
+            image: "assets/portfolio/AboutMe/Pets/maxie.jpg",
+            job: "Senior Snack Supervisor &amp; Solar Energy Specialist",
+            personality: "Loyal, energetic, and somehow still powered by an endless internal battery.",
+            favoriteThings: "Snacks, sunshine, naps, and being wherever his mom is.",
+            story:
+              "Max has been my loyal boy for 15 years and still has the energy of the Energizer Bunny. He would happily snack all day if given the opportunity, and when he isn&rsquo;t looking for food, you&rsquo;ll usually find him stretched out somewhere sunny. He is basically a tiny, furry solar panel who recharges exclusively through sunlight and snacks.",
+            specialTalent: "Finding the warmest patch of sunlight in the entire house.",
+          },
+          {
+            name: "Miz",
+            meta: "2 years old | Tortoiseshell Cat",
+            image: "assets/portfolio/AboutMe/Pets/mizKitty.jpg",
+            job: "Resident Princess &amp; Head of Distractions",
+            personality: "Sassy, spoiled, dramatic, and extremely selective about her people.",
+            favoriteThings: "Food, backyard adventures, grass, sunshine, and annoying Max.",
+            story:
+              "Miz is the brattiest little princess in the house, and she is completely aware of it. She loves roaming around the backyard, lounging in the grass, begging for food, and bothering her older brother Max whenever the mood strikes. She is fiercely devoted to her mom and has decided that everyone else can simply exist somewhere else.",
+            specialTalent: "Turning a request for food into a full-scale emergency.",
+          },
+          {
+            name: "Moira",
+            meta: "8 years old | Bearded Dragon",
+            image: "assets/portfolio/AboutMe/Pets/Moira.jpg",
+            job: "Bug Inspector &amp; Reptile Royalty",
+            personality: "Sassy, opinionated, spoiled, and surprisingly dramatic for a lizard.",
+            favoriteThings: "Bugs, apples, grapes, blueberries, and sleeping in completely unreasonable positions.",
+            story:
+              "Moira is another princess of the household, just with scales. She absolutely loves her bugs and fruit, especially apples, grapes, and blueberries. Greens are another story. She would happily remove them from the menu forever, but unfortunately for her, management insists on a balanced diet. She has an impressive amount of sass for one small lizard and regularly falls asleep in positions that look physically impossible.",
+            specialTalent: "Sleeping like gravity is merely a suggestion.",
+          },
+        ]),
       },
       {
-        title: "Design Focus",
-        summary: "A quick look at the kind of work I want this garden to hold.",
+        title: "Creative Fuel",
+        summary: "The games, colors, places, stories, and wonderfully strange things that inspire my work.",
         content: createProjectContent({
-          title: "Design Focus",
-          summary: "A quick look at the creative sections inside this portfolio garden.",
-          details: [
-            "<strong>Web Design:</strong> Built sites, responsive interfaces, and interactive storytelling.",
-            "<strong>UX Design:</strong> Flows, prototypes, systems, and product concepts.",
-            "<strong>Logo Design:</strong> Identity work with readable marks and flexible lockups.",
-            "<strong>Other Projects:</strong> Invitations, games, print pieces, and playful experiments.",
-          ],
+          title: "Creative Fuel",
+          images: folderImages("assets/portfolio/AboutMe/CreativeFuel"),
+          body: `
+            <blockquote>
+              <p>A lot of my inspiration comes from things outside traditional design. Games, moody environments, storytelling, nature, strange little details, and nostalgic visuals often find their way into the things I create.</p>
+            </blockquote>
+            <div class="personal-list">
+              <section class="personal-card">
+                <h3>Games</h3>
+                <p>Interactive worlds, environmental storytelling, character design, UI, and atmosphere.</p>
+              </section>
+              <section class="personal-card">
+                <h3>Dark + Moody Visuals</h3>
+                <p>Deep colors, glowing light, dramatic contrast, fog, rain, nighttime scenes, and anything slightly mysterious.</p>
+              </section>
+              <section class="personal-card">
+                <h3>Nature</h3>
+                <p>Plants, rocks, landscapes, textures, flowers, and organic colors.</p>
+              </section>
+              <section class="personal-card">
+                <h3>Nostalgia</h3>
+                <p>Retro websites, pixel art, old games, magazines, vintage graphics, and things that feel familiar without looking outdated.</p>
+              </section>
+              <section class="personal-card">
+                <h3>Storytelling</h3>
+                <p>I love designs that feel like they belong to a larger world instead of existing only to look pretty.</p>
+              </section>
+              <section class="personal-card">
+                <h3>Odd Little Things</h3>
+                <p>Cryptids, unusual objects, weird history, tiny details, and anything that makes me want to know more.</p>
+              </section>
+            </div>
+          `,
         }),
       },
     ],
@@ -249,7 +519,7 @@ const appContent = {
     ],
   },
   contact: {
-    title: "Contact Info",
+    title: "Contact",
     items: [
       {
         title: "Contact",
@@ -789,9 +1059,27 @@ desktopIcons.forEach((icon) => {
   });
 });
 
+contactTab?.addEventListener("click", (event) => {
+  event.stopPropagation();
+  setContactPanelOpen(!contactPanel?.classList.contains("open"));
+});
+
+contactPanelClose?.addEventListener("click", () => {
+  setContactPanelOpen(false);
+  contactTab?.focus();
+});
+
 document.addEventListener("click", (event) => {
   if (!event.target.closest(".desktop-icon")) {
     clearIconSelection();
+  }
+
+  if (
+    contactPanel?.classList.contains("open") &&
+    !contactPanel.contains(event.target) &&
+    !contactTab?.contains(event.target)
+  ) {
+    setContactPanelOpen(false);
   }
 });
 
