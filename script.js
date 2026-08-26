@@ -17,16 +17,7 @@ const portfolioAppOrder = [
   "contact",
 ];
 
-const folderImageNames = ["cover", "01", "02", "03", "04"];
-const folderImageExtensions = ["jpg", "png", "webp"];
-
-function folderImages(folder, existingImages = []) {
-  const conventionalImages = folderImageNames.flatMap((name) =>
-    folderImageExtensions.map((extension) => `${folder}/${name}.${extension}`)
-  );
-
-  return [...existingImages, ...conventionalImages];
-}
+const projectAppIds = new Set(["web-design", "ux-design", "logo-design", "other-projects"]);
 
 function createProjectContent({
   title,
@@ -37,14 +28,17 @@ function createProjectContent({
   body = "",
   link = "",
   linkLabel = "Open Project",
+  className = "",
+  randomizeImages = false,
 }) {
   const mediaItems = [...new Set([image, ...images].filter(Boolean))];
+  const carouselItems = randomizeImages ? shuffleItems(mediaItems) : mediaItems;
   const snapshotMarkup =
-    mediaItems.length > 1
+    carouselItems.length > 1
       ? `
-        <figure class="project-snapshot project-carousel" data-carousel aria-label="${title} image carousel">
+        <figure class="project-snapshot project-carousel" data-carousel ${randomizeImages ? 'data-carousel-random="true"' : ""} aria-label="${title} image carousel">
           <div class="carousel-stage">
-            ${mediaItems
+            ${carouselItems
               .map(
                 (src, index) =>
                   `<img class="carousel-slide ${index === 0 ? "active" : ""}" src="${src}" alt="${title} preview ${index + 1}" data-carousel-slide data-carousel-slide-index="${index}" />`
@@ -55,12 +49,12 @@ function createProjectContent({
           <button class="carousel-btn carousel-prev" type="button" data-carousel-prev aria-label="Previous image">&lt;</button>
           <button class="carousel-btn carousel-next" type="button" data-carousel-next aria-label="Next image">&gt;</button>
           <div class="carousel-dots" aria-hidden="true">
-            ${mediaItems.map((_, index) => `<button class="${index === 0 ? "active" : ""}" type="button" data-carousel-dot="${index}"></button>`).join("")}
+            ${carouselItems.map((_, index) => `<button class="${index === 0 ? "active" : ""}" type="button" data-carousel-dot="${index}"></button>`).join("")}
           </div>
         </figure>
       `
-      : mediaItems.length === 1
-        ? `<figure class="project-snapshot"><img src="${mediaItems[0]}" alt="${title} preview" data-project-image /><span class="project-snapshot-fallback" hidden>${title}</span></figure>`
+      : carouselItems.length === 1
+        ? `<figure class="project-snapshot"><img src="${carouselItems[0]}" alt="${title} preview" data-project-image /><span class="project-snapshot-fallback" hidden>${title}</span></figure>`
         : `<div class="project-snapshot project-snapshot-empty"><span>${title}</span></div>`;
   const detailMarkup = details.length
     ? `<ul class="entry-list">${details.map((detail) => `<li>${detail}</li>`).join("")}</ul>`
@@ -72,7 +66,7 @@ function createProjectContent({
     : "";
 
   return `
-    <article class="content-block portfolio-entry">
+    <article class="content-block portfolio-entry ${className}">
       ${snapshotMarkup}
       <div class="portfolio-info">
         ${summaryMarkup}
@@ -82,6 +76,17 @@ function createProjectContent({
       </div>
     </article>
   `;
+}
+
+function shuffleItems(items) {
+  const shuffled = [...items];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
+  }
+
+  return shuffled;
 }
 
 function createPetContent(pets) {
@@ -95,9 +100,21 @@ function createPetContent(pets) {
           .map(
             (pet, index) => `
               <section class="pet-slide ${index === 0 ? "active" : ""}" data-pet-slide="${index}" ${index === 0 ? "" : "hidden"}>
-                <figure class="project-snapshot pet-snapshot">
-                  <img src="${pet.image}" alt="${pet.name} portrait" data-project-image />
-                  <span class="project-snapshot-fallback" hidden>${pet.name}</span>
+                <figure class="project-snapshot project-carousel pet-snapshot" data-carousel aria-label="${pet.name} photo carousel">
+                  <div class="carousel-stage">
+                    ${pet.images
+                      .map(
+                        (src, photoIndex) =>
+                          `<img class="carousel-slide ${photoIndex === 0 ? "active" : ""}" src="${src}" alt="${pet.name} photo ${photoIndex + 1}" data-carousel-slide data-carousel-slide-index="${photoIndex}" />`
+                      )
+                      .join("")}
+                    <span class="project-snapshot-fallback" hidden>${pet.name}</span>
+                  </div>
+                  <button class="carousel-btn carousel-prev" type="button" data-carousel-prev aria-label="Previous ${pet.name} photo">&lt;</button>
+                  <button class="carousel-btn carousel-next" type="button" data-carousel-next aria-label="Next ${pet.name} photo">&gt;</button>
+                  <div class="carousel-dots" aria-hidden="true">
+                    ${pet.images.map((_, photoIndex) => `<button class="${photoIndex === 0 ? "active" : ""}" type="button" data-carousel-dot="${photoIndex}"></button>`).join("")}
+                  </div>
                 </figure>
                 <div class="portfolio-info pet-slide-info">
                   <section class="pet-card">
@@ -122,6 +139,24 @@ function createPetContent(pets) {
         <span class="pet-counter" data-pet-counter>1 / ${pets.length}</span>
         <button class="pet-nav-btn" type="button" data-pet-next aria-label="Next pet">&gt;</button>
       </footer>
+    </article>
+  `;
+}
+
+function createContactContent() {
+  return `
+    <article class="content-block contact-content-block">
+      <p>Send a message about design work, portfolio feedback, collaborations, or project questions.</p>
+      <div class="contact-panel-content contact-content-inline">
+        <a class="contact-row" href="mailto:wallacebl20@gmail.com">
+          <span>Email</span>
+          <strong>wallacebl20@gmail.com</strong>
+        </a>
+        <a class="contact-row" href="https://github.com/bwallace11" target="_blank" rel="noreferrer">
+          <span>GitHub</span>
+          <strong>github.com/bwallace11</strong>
+        </a>
+      </div>
     </article>
   `;
 }
@@ -168,6 +203,29 @@ function advanceCarousel(carousel, direction) {
   setCarouselSlide(carousel, currentIndex + direction);
 }
 
+function getRandomCarouselIndex(carousel) {
+  const slides = [...carousel.querySelectorAll("[data-carousel-slide]")].filter((slide) => !slide.hidden);
+  const currentIndex = Number(carousel.dataset.carouselIndex || "0");
+
+  if (slides.length <= 1) return 0;
+
+  let randomIndex = currentIndex;
+  while (randomIndex === currentIndex) {
+    randomIndex = Math.floor(Math.random() * slides.length);
+  }
+
+  return randomIndex;
+}
+
+function moveCarousel(carousel, direction) {
+  if (carousel.dataset.carouselRandom === "true") {
+    setCarouselSlide(carousel, getRandomCarouselIndex(carousel));
+    return;
+  }
+
+  advanceCarousel(carousel, direction);
+}
+
 function setPetSlide(slider, index) {
   const slides = [...slider.querySelectorAll("[data-pet-slide]")];
   if (!slides.length) return;
@@ -179,9 +237,24 @@ function setPetSlide(slider, index) {
     const active = slideIndex === nextIndex;
     slide.hidden = !active;
     slide.classList.toggle("active", active);
+
     slide.querySelectorAll("img, button, a").forEach((element) => {
-      element.tabIndex = active ? 0 : -1;
+      if (!active) {
+        element.tabIndex = -1;
+        return;
+      }
+
+      if (element.matches("[data-carousel-slide]")) {
+        element.tabIndex = element.classList.contains("active") ? 0 : -1;
+        return;
+      }
+
+      element.tabIndex = 0;
     });
+  });
+
+  slides[nextIndex].querySelectorAll("[data-carousel]").forEach((carousel) => {
+    setCarouselSlide(carousel, 0);
   });
 
   const counter = slider.querySelector("[data-pet-counter]");
@@ -309,11 +382,11 @@ function initProjectMedia(root) {
     });
 
     carousel.querySelector("[data-carousel-prev]")?.addEventListener("click", () => {
-      advanceCarousel(carousel, -1);
+      moveCarousel(carousel, -1);
     });
 
     carousel.querySelector("[data-carousel-next]")?.addEventListener("click", () => {
-      advanceCarousel(carousel, 1);
+      moveCarousel(carousel, 1);
     });
 
     carousel.querySelectorAll("[data-carousel-dot]").forEach((dot) => {
@@ -322,7 +395,7 @@ function initProjectMedia(root) {
       });
     });
 
-    setCarouselSlide(carousel, 0);
+    setCarouselSlide(carousel, carousel.dataset.carouselRandom === "true" ? getRandomCarouselIndex(carousel) : 0);
 
     const intervalId = window.setInterval(() => {
       if (!carousel.isConnected) {
@@ -330,7 +403,7 @@ function initProjectMedia(root) {
         return;
       }
 
-      advanceCarousel(carousel, 1);
+      moveCarousel(carousel, 1);
     }, 5000);
   });
 
@@ -347,6 +420,7 @@ const appContent = {
         content: createProjectContent({
           title: "Brittany Wallace",
           image: "assets/portfolio/me/bwallacepic.png",
+          className: "about-profile-page",
           body: `
             <h3>Intro</h3>
             <blockquote>
@@ -354,9 +428,9 @@ const appContent = {
               <p>I especially enjoy taking an idea from a rough concept and turning it into something people can actually see, use, and interact with.</p>
             </blockquote>
             <div class="profile-chip-list" aria-label="Creative skills">
-              <span class="profile-chip">Graphic Design</span>
               <span class="profile-chip">Front-End Web Design</span>
-              <span class="profile-chip">UX/UI Design</span>
+              <span class="profile-chip">UX Design</span>
+              <span class="profile-chip">Graphic Design</span>
               <span class="profile-chip">Interactive Design</span>
               <span class="profile-chip">Branding</span>
               <span class="profile-chip">Creative Coding</span>
@@ -376,46 +450,84 @@ const appContent = {
       {
         title: "Fun Things About Me",
         summary: "A personal notes section for the little details that make the portfolio feel like me.",
-        content: createProjectContent({
-          title: "Fun Things About Me",
-          images: folderImages("assets/portfolio/AboutMe/FunThings"),
-          body: `
+        content: `
+          <article class="content-block about-text-page">
             <h3>Small intro</h3>
             <blockquote>
               <p>There&rsquo;s more to me than design files and browser tabs. Here are a few things that make me, me.</p>
             </blockquote>
             <div class="personal-list">
               <section class="personal-card">
-                <h3>Night Owl</h3>
+                <h3>Sleep Schedule? Never Heard of Her</h3>
                 <p>My best ideas have a suspicious habit of showing up after midnight.</p>
               </section>
               <section class="personal-card">
-                <h3>Purple Everything</h3>
+                <h3>Purple Is Basically a Neutral</h3>
                 <p>Purple has been my favorite color long enough that resisting it in my designs takes actual effort.</p>
               </section>
               <section class="personal-card">
-                <h3>Coffee Powered</h3>
+                <h3>Caffeine Is a Personality Trait</h3>
                 <p>Cold brew is basically part of the creative process at this point.</p>
               </section>
               <section class="personal-card">
-                <h3>Gamer</h3>
+                <h3>Just One More Quest</h3>
                 <p>Games are one of my favorite sources of inspiration for storytelling, atmosphere, interaction, and visual design.</p>
               </section>
               <section class="personal-card">
-                <h3>Spooky Stuff</h3>
+                <h3>A Little Haunted, It&rsquo;s Fine</h3>
                 <p>I love dark, gothic, strange, mysterious, and slightly creepy things.</p>
               </section>
               <section class="personal-card">
-                <h3>I Like Making Things</h3>
+                <h3>Apparently I Need More Hobbies</h3>
                 <p>Digital projects, crafts, weird experiments, websites. Apparently having one hobby was too reasonable.</p>
               </section>
               <section class="personal-card">
-                <h3>Always Learning</h3>
+                <h3>Constantly Adding New Tabs to My Brain</h3>
                 <p>I&rsquo;m constantly trying new design tools, coding techniques, and creative ideas.</p>
               </section>
+              <section class="personal-card">
+                <h3>Murder, But Make It Educational</h3>
+                <p>I love true crime, mysteries, and anything that sends me down a good rabbit hole.</p>
+              </section>
+              <section class="personal-card">
+                <h3>Silence? Absolutely Not.</h3>
+                <p>I almost always have an audiobook or music playing while I work, bake, clean, or go about my day.</p>
+              </section>
             </div>
-          `,
-        }),
+          </article>
+        `,
+      },
+      {
+        title: "Life Outside Design",
+        summary: "Baking, flowers, personal growth, and the things I&rsquo;m working toward away from the screen.",
+        content: `
+          <article class="content-block about-text-page life-outside-page">
+            <blockquote>
+              <p>Baking, flowers, personal growth, and the things I&rsquo;m working toward away from the screen.</p>
+            </blockquote>
+            <div class="personal-list">
+              <section class="personal-card">
+                <h3>From My Kitchen</h3>
+                <blockquote>
+                  <p>Baking has become one of my favorite creative outlets away from the computer. I especially love experimenting with sourdough and finding new recipes to try. It turns out I still enjoy making things even when Ctrl+Z is unavailable.</p>
+                </blockquote>
+              </section>
+              <section class="personal-card">
+                <h3>In the Garden</h3>
+                <blockquote>
+                  <p>I&rsquo;ve recently started learning how to grow flowers and spending more time outside working with plants. I&rsquo;m still learning, but watching something grow because I actually managed to keep it alive is ridiculously satisfying.</p>
+                </blockquote>
+              </section>
+              <section class="personal-card">
+                <h3>A Personal Journey</h3>
+                <blockquote>
+                  <p>I&rsquo;ve been working toward becoming healthier and building habits that I can actually maintain. So far, I&rsquo;ve lost 80 pounds. The journey has had plenty of ups and downs, but I&rsquo;m proud of how far I&rsquo;ve come and I&rsquo;m continuing to work toward where I want to be.</p>
+                  <p>More than anything, it has taught me that meaningful progress usually happens through lots of small choices rather than one huge change.</p>
+                </blockquote>
+              </section>
+            </div>
+          </article>
+        `,
       },
       {
         title: "Meet the Pets",
@@ -424,7 +536,11 @@ const appContent = {
           {
             name: "Max",
             meta: "15 years old | Terrier Mix",
-            image: "assets/portfolio/AboutMe/Pets/maxie.jpg",
+            images: [
+              "assets/portfolio/AboutMe/Pets/maxie.jpg",
+              "assets/portfolio/AboutMe/Pets/Maxie2.jpg",
+              "assets/portfolio/AboutMe/Pets/Maxie3.jpg",
+            ],
             job: "Senior Snack Supervisor &amp; Solar Energy Specialist",
             personality: "Loyal, energetic, and somehow still powered by an endless internal battery.",
             favoriteThings: "Snacks, sunshine, naps, and being wherever his mom is.",
@@ -435,7 +551,11 @@ const appContent = {
           {
             name: "Miz",
             meta: "2 years old | Tortoiseshell Cat",
-            image: "assets/portfolio/AboutMe/Pets/mizKitty.jpg",
+            images: [
+              "assets/portfolio/AboutMe/Pets/mizKitty.jpg",
+              "assets/portfolio/AboutMe/Pets/Miz2.jpg",
+              "assets/portfolio/AboutMe/Pets/Miz3.jpg",
+            ],
             job: "Resident Princess &amp; Head of Distractions",
             personality: "Sassy, spoiled, dramatic, and extremely selective about her people.",
             favoriteThings: "Food, backyard adventures, grass, sunshine, and annoying Max.",
@@ -446,7 +566,11 @@ const appContent = {
           {
             name: "Moira",
             meta: "8 years old | Bearded Dragon",
-            image: "assets/portfolio/AboutMe/Pets/Moira.jpg",
+            images: [
+              "assets/portfolio/AboutMe/Pets/Moira.jpg",
+              "assets/portfolio/AboutMe/Pets/Moira2.jpg",
+              "assets/portfolio/AboutMe/Pets/Moira3.jpg",
+            ],
             job: "Bug Inspector &amp; Reptile Royalty",
             personality: "Sassy, opinionated, spoiled, and surprisingly dramatic for a lizard.",
             favoriteThings: "Bugs, apples, grapes, blueberries, and sleeping in completely unreasonable positions.",
@@ -461,7 +585,31 @@ const appContent = {
         summary: "The games, colors, places, stories, and wonderfully strange things that inspire my work.",
         content: createProjectContent({
           title: "Creative Fuel",
-          images: folderImages("assets/portfolio/AboutMe/CreativeFuel"),
+          randomizeImages: true,
+          images: [
+            "assets/portfolio/AboutMe/CreativeFuel/207.jpg",
+            "assets/portfolio/AboutMe/CreativeFuel/Akasha.jpg",
+            "assets/portfolio/AboutMe/CreativeFuel/alien.jpg",
+            "assets/portfolio/AboutMe/CreativeFuel/applePieCinnamonRolls.jpg",
+            "assets/portfolio/AboutMe/CreativeFuel/blackCat.jpg",
+            "assets/portfolio/AboutMe/CreativeFuel/blackWhitebutterfly.png",
+            "assets/portfolio/AboutMe/CreativeFuel/cinnamonRolls.jpg",
+            "assets/portfolio/AboutMe/CreativeFuel/diffmoths.jpg",
+            "assets/portfolio/AboutMe/CreativeFuel/ff7.png",
+            "assets/portfolio/AboutMe/CreativeFuel/hibiscius.jpg",
+            "assets/portfolio/AboutMe/CreativeFuel/leonKennedy.png",
+            "assets/portfolio/AboutMe/CreativeFuel/loveHurts.png",
+            "assets/portfolio/AboutMe/CreativeFuel/minecraft.jpg",
+            "assets/portfolio/AboutMe/CreativeFuel/Mothman.png",
+            "assets/portfolio/AboutMe/CreativeFuel/orchid.jpg",
+            "assets/portfolio/AboutMe/CreativeFuel/orchid2.jpg",
+            "assets/portfolio/AboutMe/CreativeFuel/pixelBackground.png",
+            "assets/portfolio/AboutMe/CreativeFuel/pixelFairy.png",
+            "assets/portfolio/AboutMe/CreativeFuel/purpleBackground.png",
+            "assets/portfolio/AboutMe/CreativeFuel/Screenshot%202024-03-13%20at%2021-28-38%20Photo.png",
+            "assets/portfolio/AboutMe/CreativeFuel/Screenshot%202025-04-25%20at%2015-44-23%20Sora.png",
+            "assets/portfolio/AboutMe/CreativeFuel/shootingStarBackground.png",
+          ],
           body: `
             <blockquote>
               <p>A lot of my inspiration comes from things outside traditional design. Games, moody environments, storytelling, nature, strange little details, and nostalgic visuals often find their way into the things I create.</p>
@@ -524,15 +672,7 @@ const appContent = {
       {
         title: "Contact",
         summary: "Email, GitHub, and project inquiry links.",
-        content: createProjectContent({
-          title: "Contact Info",
-          summary: "Send a message about design work, portfolio feedback, collaborations, or project questions.",
-          images: folderImages("assets/portfolio/Contact"),
-          details: [
-            '<strong>Email:</strong> <a href="mailto:hello@brittanywallace.design">hello@brittanywallace.design</a>',
-            '<strong>GitHub:</strong> <a href="https://github.com/bwallace11" target="_blank" rel="noreferrer">github.com/bwallace11</a>',
-          ],
-        }),
+        content: createContactContent(),
       },
     ],
   },
@@ -634,11 +774,11 @@ const appContent = {
         content: createProjectContent({
           title: "Nocturne",
           summary: "A modern restaurant UX concept balancing atmosphere with fast, clear decision paths.",
-          images: folderImages("assets/portfolio/UXDesign/nocturne", [
+          images: [
             "assets/portfolio/UXDesign/nocturne/HompageKH.png",
             "assets/portfolio/UXDesign/nocturne/Nocturnemockup2%201.png",
             "assets/portfolio/UXDesign/nocturne/NocturneMock3.png",
-          ]),
+          ],
           details: ["Figma prototype", "User flow mapping", "Restaurant interface design"],
           link: "https://www.figma.com/proto/nCVow6D3JEpuHJHY9XOybR/Nocturne?page-id=0%3A1&node-id=1-1018&viewport=-6597%2C-1926%2C0.28&t=8vbov3t8FRKnZNvJ-1&scaling=min-zoom&content-scaling=fixed",
           linkLabel: "Open Prototype",
@@ -650,11 +790,11 @@ const appContent = {
         content: createProjectContent({
           title: "Kindara",
           summary: "A supportive mental health UX concept built around calm pacing, trust, and low-friction navigation.",
-          images: folderImages("assets/portfolio/UXDesign/kindara", [
+          images: [
             "assets/portfolio/UXDesign/kindara/KindaraMockup.png",
             "assets/portfolio/UXDesign/kindara/kindara-mockup-2%201.png",
             "assets/portfolio/UXDesign/kindara/Kindar-lowfi%201.png",
-          ]),
+          ],
           details: ["UX writing", "Support pathways", "Prototype testing"],
           link: "https://www.figma.com/proto/hiYKsf8yJsGzTPOtcZ4Blk/Kindara?page-id=5%3A6&node-id=3333-316&viewport=162%2C319%2C0.08&t=XGtuw8JmfDuDjErO-1&scaling=min-zoom&content-scaling=fixed&starting-point-node-id=3324%3A159",
           linkLabel: "Open Prototype",
@@ -666,12 +806,12 @@ const appContent = {
         content: createProjectContent({
           title: "Inklore",
           summary: "A travel planning UX prototype focused on discovery, planning, and decision confidence.",
-          images: folderImages("assets/portfolio/UXDesign/inklore", [
+          images: [
             "assets/portfolio/UXDesign/inklore/InkloreMockup.png",
             "assets/portfolio/UXDesign/inklore/InkloreMockup2.png",
             "assets/portfolio/UXDesign/inklore/InkloreMockup3.png",
             "assets/portfolio/UXDesign/inklore/iNKLORESTICKER.png",
-          ]),
+          ],
           details: ["Journey mapping", "Recommendation flow", "Interaction design"],
           link: "https://www.figma.com/proto/HavXiTc963sPpUNYyX7lA2/Inklore?page-id=0%3A1&node-id=1-823&viewport=424%2C363%2C0.05&t=5exoolhhL3Qgt6P4-1&scaling=min-zoom&content-scaling=fixed&starting-point-node-id=1%3A837",
           linkLabel: "Open Prototype",
@@ -683,12 +823,12 @@ const appContent = {
         content: createProjectContent({
           title: "Yo-Pedia",
           summary: "A folklore education concept that uses quizzes, modular content, and saved favorites.",
-          images: folderImages("assets/portfolio/UXDesign/yopedia", [
+          images: [
             "assets/portfolio/UXDesign/yopedia/yopediaMockup.png",
             "assets/portfolio/UXDesign/yopedia/yopediamockup2.png",
             "assets/portfolio/UXDesign/yopedia/yopida-screen.png",
             "assets/portfolio/UXDesign/yopedia/yopida-hoodie.png",
-          ]),
+          ],
           details: ["UX prototyping", "Information design", "Playful learning flow"],
           link: "https://www.figma.com/proto/bS9zIgjEoz1pq2W5pNvT5Z/Yo-pedia?page-id=0%3A1&node-id=1-2419&viewport=45%2C84%2C0.03&t=CKhp8cC4ySywlFiq-1&scaling=min-zoom&content-scaling=fixed",
           linkLabel: "Open Prototype",
@@ -700,11 +840,11 @@ const appContent = {
         content: createProjectContent({
           title: "Greenly",
           summary: "An eco-action app concept designed to make sustainable habits feel simple and rewarding.",
-          images: folderImages("assets/portfolio/UXDesign/greenly", [
+          images: [
             "assets/portfolio/UXDesign/greenly/greenly%20mockup%201.png",
             "assets/portfolio/UXDesign/greenly/greenlyMockup3.png",
             "assets/portfolio/UXDesign/greenly/fasdfsdvffvfrtggbtgbhgnh%201.png",
-          ]),
+          ],
           details: ["Gamification UX", "Progress feedback", "Collaborative design"],
           link: "https://www.figma.com/proto/VFa9OIap1WKtjWFH3vicj9/Verdantia?page-id=0%3A1&node-id=61-1751&viewport=157%2C181%2C0.11&t=8sqo8z4iXSt86MZg-1&scaling=scale-down&content-scaling=fixed&starting-point-node-id=61%3A1751&show-proto-sidebar=1",
           linkLabel: "Open Prototype",
@@ -721,10 +861,10 @@ const appContent = {
         content: createProjectContent({
           title: "Local 931",
           summary: "A community-focused identity concept built around clear lockups and local personality.",
-          images: folderImages("assets/portfolio/LogoDesign/Local931", [
+          images: [
             "assets/portfolio/LogoDesign/Local931/931Local-logo.jpg",
             "assets/portfolio/LogoDesign/Local931/931tshirtmockup.png",
-          ]),
+          ],
           details: ["Logo exploration", "Brand mark development", "Signage and digital flexibility"],
         }),
       },
@@ -734,10 +874,10 @@ const appContent = {
         content: createProjectContent({
           title: "Friends of The Centennial Trail Logo",
           summary: "A community logo concept shaped around trees, trail movement, and an accessible outdoor mark.",
-          images: folderImages("assets/portfolio/LogoDesign/FriendsCentennialTrail", [
+          images: [
             "assets/portfolio/LogoDesign/FriendsCentennialTrail/FOTCT-8.png",
             "assets/portfolio/LogoDesign/FriendsCentennialTrail/naturetshirt.jpg",
-          ]),
+          ],
           details: ["Logo system", "Outdoor nonprofit identity", "Merch and community use"],
         }),
       },
@@ -747,11 +887,11 @@ const appContent = {
         content: createProjectContent({
           title: "The Sunshine Club Logo",
           summary: "A bright identity system with a sunglasses sun mark, expressive typography, and friendly event energy.",
-          images: folderImages("assets/portfolio/LogoDesign/SunshineClub", [
+          images: [
             "assets/portfolio/LogoDesign/SunshineClub/SunshineClubLogo.png",
             "assets/portfolio/LogoDesign/SunshineClub/538600355_1306171467868836_5871361979572095778_n.jpg",
             "assets/portfolio/LogoDesign/SunshineClub/480967944_1168310114988306_7159077442531729478_n.jpg",
-          ]),
+          ],
           details: ["Logo design", "Apparel mockups", "Event banner application"],
         }),
       },
@@ -761,10 +901,10 @@ const appContent = {
         content: createProjectContent({
           title: "Nightmare Fuel",
           summary: "A moody coffee identity built around a purple monster mark, bright green accent color, and packaging applications.",
-          images: folderImages("assets/portfolio/LogoDesign/NightmareFuel", [
+          images: [
             "assets/portfolio/LogoDesign/NightmareFuel/nightmarefuel.png",
             "assets/portfolio/LogoDesign/NightmareFuel/nightmarefuelMockup.jpg",
-          ]),
+          ],
           details: ["Logo design", "Packaging mockups", "Brand application"],
         }),
       },
@@ -779,9 +919,9 @@ const appContent = {
         content: createProjectContent({
           title: "My Attack On Travis Game",
           summary: "A game project included in the portfolio's other creative work section.",
-          images: folderImages("assets/portfolio/OtherProjects/AttackOnTravis", [
+          images: [
             "assets/portfolio/OtherProjects/AttackOnTravis/AtackonTravis-Cover.jpg",
-          ]),
+          ],
           details: ["Game concept", "Interactive project", "Creative coding"],
           link: "https://gd.games/bwallace/attack-on-travis",
           linkLabel: "Play Game",
@@ -793,9 +933,9 @@ const appContent = {
         content: createProjectContent({
           title: "The Last Place We Played Game",
           summary: "A game project focused on interactive storytelling and playable experience design.",
-          images: folderImages("assets/portfolio/OtherProjects/TheLastPlaceWePlayed", [
+          images: [
             "assets/portfolio/OtherProjects/TheLastPlaceWePlayed/Title-Page-Full.jpg",
-          ]),
+          ],
           details: ["Game design", "Interactive narrative", "Atmospheric direction"],
           link: "https://gd.games/bwallace/the-last-place-we-played",
           linkLabel: "Play Game",
@@ -807,10 +947,10 @@ const appContent = {
         content: createProjectContent({
           title: "Caitylnn's Wedding Invite",
           summary: "A custom wedding invitation piece built around event tone, hierarchy, and print-friendly layout.",
-          images: folderImages("assets/portfolio/OtherProjects/CaitylnnWeddingInvite", [
+          images: [
             "assets/portfolio/OtherProjects/CaitylnnWeddingInvite/caitymockup3.jpg",
             "assets/portfolio/OtherProjects/CaitylnnWeddingInvite/caityinviteNew.jpg",
-          ]),
+          ],
           details: ["Invitation design", "Typography", "Print layout"],
         }),
       },
@@ -820,9 +960,9 @@ const appContent = {
         content: createProjectContent({
           title: "Jacob's Birthday Invite",
           summary: "A bold birthday invite with comic-inspired styling and clear event information.",
-          images: folderImages("assets/portfolio/OtherProjects/JacobBirthdayInvite", [
+          images: [
             "assets/portfolio/OtherProjects/JacobBirthdayInvite/Jacobinvite3.jpg",
-          ]),
+          ],
           details: ["Invitation design", "Comic visual style", "Print layout"],
         }),
       },
@@ -832,9 +972,9 @@ const appContent = {
         content: createProjectContent({
           title: "Dad and Deb Wedding Invite",
           summary: "A personal wedding invitation piece with custom visual direction and clean event hierarchy.",
-          images: folderImages("assets/portfolio/OtherProjects/DadDebWeddingInvite", [
+          images: [
             "assets/portfolio/OtherProjects/DadDebWeddingInvite/D%26DWInv.jpg",
-          ]),
+          ],
           details: ["Wedding invite", "Typography", "Personal event design"],
         }),
       },
@@ -890,8 +1030,6 @@ function closeWindow(appId) {
 }
 
 function renderFolder(windowData) {
-  windowData.mode = "folder";
-
   const listMarkup = windowData.app.items
     .map(
       (item, index) => `
@@ -923,17 +1061,28 @@ function renderPage(windowData, itemIndex) {
   const item = windowData.app.items[itemIndex];
   if (!item) return;
 
-  windowData.mode = "page";
+  const isProjectPage = projectAppIds.has(windowData.appId);
+  const pageTitle = isProjectPage ? "" : `<h2>${item.title}</h2>`;
 
   windowData.content.innerHTML = `
-    <section class="page-view">
+    <section class="page-view ${isProjectPage ? "project-page" : "standard-page"}">
       <header class="page-view-header">
-        <h2>${item.title}</h2>
+        ${pageTitle}
         <button class="page-close" type="button" aria-label="Close page and return to folder">&times;</button>
       </header>
       <div class="page-body">${item.content}</div>
     </section>
   `;
+
+  if (isProjectPage) {
+    const portfolioInfo = windowData.content.querySelector(".portfolio-info");
+    if (portfolioInfo) {
+      const projectTitle = document.createElement("h2");
+      projectTitle.className = "project-entry-title";
+      projectTitle.textContent = item.title;
+      portfolioInfo.prepend(projectTitle);
+    }
+  }
 
   initProjectMedia(windowData.content);
 
@@ -989,7 +1138,6 @@ function createWindow(appId) {
     app: appData,
     element: windowElement,
     content: contentElement,
-    mode: "folder",
   };
 
   closeBtn.addEventListener("click", () => closeWindow(appId));
@@ -1084,21 +1232,67 @@ document.addEventListener("click", (event) => {
 });
 
 function buildMobileCards() {
+  if (!mobileCards) return;
+
   mobileCards.innerHTML = "";
 
-  portfolioAppOrder.map((appId) => appContent[appId]).forEach((app) => {
+  portfolioAppOrder.map((appId) => appContent[appId]).filter(Boolean).forEach((app) => {
     const card = document.createElement("article");
     card.className = "mobile-card";
     card.innerHTML = `
       <header class="mobile-card-header">${app.title}</header>
       <div class="mobile-card-content">
-        <ul class="entry-list">
-          ${app.items.map((item) => `<li><strong>${item.title}:</strong> ${item.summary}</li>`).join("")}
-        </ul>
+        <div class="mobile-item-list">
+          ${app.items
+            .map(
+              (item, index) => `
+                <section class="mobile-item-block">
+                  <button class="mobile-item" type="button" data-mobile-item="${index}" aria-expanded="false">
+                    <span class="mobile-item-title">${item.title}</span>
+                    <span class="mobile-item-summary">${item.summary}</span>
+                  </button>
+                  <div class="mobile-item-content" hidden></div>
+                </section>
+              `
+            )
+            .join("")}
+        </div>
       </div>
     `;
 
+    card.querySelectorAll("[data-mobile-item]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const itemIndex = Number(button.dataset.mobileItem);
+        const panel = button.parentElement.querySelector(".mobile-item-content");
+        const wasOpen = button.getAttribute("aria-expanded") === "true";
+
+        closeMobilePanels(card);
+        if (wasOpen || !panel) return;
+
+        button.classList.add("active");
+        button.setAttribute("aria-expanded", "true");
+        panel.innerHTML = app.items[itemIndex].content;
+        panel.hidden = false;
+        initProjectMedia(panel);
+      });
+    });
+
     mobileCards.appendChild(card);
+  });
+}
+
+function closeMobilePanels(scope) {
+  const activeScope = scope || mobileCards;
+  if (!activeScope) return;
+
+  activeScope.querySelectorAll(".mobile-item.active").forEach((button) => {
+    button.classList.remove("active");
+    button.setAttribute("aria-expanded", "false");
+  });
+
+  activeScope.querySelectorAll(".mobile-item-content").forEach((panel) => {
+    panel.hidden = true;
+    panel.innerHTML = "";
   });
 }
 
